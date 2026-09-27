@@ -26,7 +26,7 @@ public sealed class ConfigurationService(string path, ILoggingService logging) :
             await using var stream = File.OpenRead(path);
             var loaded = await JsonSerializer.DeserializeAsync<AppConfiguration>(stream, JsonOptions, cancellationToken);
             Current = loaded ?? new AppConfiguration();
-            Validate();
+            Validate(Current);
             logging.Information("configuration_loaded", path);
         }
         catch (Exception exception) when (exception is IOException or JsonException or UnauthorizedAccessException)
@@ -39,62 +39,120 @@ public sealed class ConfigurationService(string path, ILoggingService logging) :
 
     public async Task SaveAsync(CancellationToken cancellationToken = default)
     {
+        Validate(Current);
         var directory = Path.GetDirectoryName(path);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
         var temporary = path + ".tmp";
-        await using (var stream = new FileStream(temporary, FileMode.Create, FileAccess.Write, FileShare.None))
-            await JsonSerializer.SerializeAsync(stream, Current, JsonOptions, cancellationToken);
+        await WriteConfigurationAsync(temporary, Current, cancellationToken);
         File.Move(temporary, path, true);
         logging.Information("configuration_saved", path);
     }
 
-    private void Validate()
+    public async Task ExportAsync(string destinationPath, CancellationToken cancellationToken = default)
     {
-        Current.Calls ??= new CallsConfiguration();
-        Current.Calls.QuietHours ??= new CallQuietHoursConfiguration();
-        Current.Startup ??= new StartupConfiguration();
-        Current.Updates ??= new UpdateConfiguration();
-        if (Current.VolumeStepPercent is < 1 or > 25)
+        ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
+        Validate(Current);
+        var fullDestination = Path.GetFullPath(destinationPath);
+        var directory = Path.GetDirectoryName(fullDestination);
+        if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
+        var temporary = fullDestination + ".tmp";
+        await WriteConfigurationAsync(temporary, Current, cancellationToken);
+        File.Move(temporary, fullDestination, true);
+        logging.Information("configuration_exported", fullDestination);
+    }
+
+    public async Task ImportAsync(string sourcePath, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
+        var fullSource = Path.GetFullPath(sourcePath);
+        AppConfiguration imported;
+        try
+        {
+            await using var stream = File.OpenRead(fullSource);
+            imported = await JsonSerializer.DeserializeAsync<AppConfiguration>(stream, JsonOptions, cancellationToken)
+                ?? throw new JsonException("The settings file did not contain a configuration object.");
+        }
+        catch (Exception exception) when (exception is IOException or JsonException or UnauthorizedAccessException)
+        {
+            logging.Error("configuration_import_failed", exception, fullSource);
+            throw new InvalidDataException($"The selected settings file is not valid: {exception.Message}", exception);
+        }
+
+        _warnings.Clear();
+        Validate(imported);
+        Current = imported;
+        await SaveAsync(cancellationToken);
+        logging.Information("configuration_imported", fullSource);
+    }
+
+    private static async Task WriteConfigurationAsync(string destination, AppConfiguration configuration, CancellationToken cancellationToken)
+    {
+        await using var stream = new FileStream(destination, FileMode.Create, FileAccess.Write, FileShare.None);
+        await JsonSerializer.SerializeAsync(stream, configuration, JsonOptions, cancellationToken);
+    }
+
+    private void Validate(AppConfiguration configuration)
+    {
+        configuration.Controller ??= new ControllerConfiguration();
+        configuration.ButtonMappings = configuration.ButtonMappings is null
+            ? new(StringComparer.OrdinalIgnoreCase)
+            : new(configuration.ButtonMappings, StringComparer.OrdinalIgnoreCase);
+        configuration.LongPressButtonMappings = configuration.LongPressButtonMappings is null
+            ? new(StringComparer.OrdinalIgnoreCase)
+            : new(configuration.LongPressButtonMappings, StringComparer.OrdinalIgnoreCase);
+        configuration.LongPressButtonMappings.TryAdd("PANEL_7", "BLACKOUT");
+        configuration.Content ??= new ContentConfiguration();
+        configuration.Calls ??= new CallsConfiguration();
+        configuration.Calls.QuietHours ??= new CallQuietHoursConfiguration();
+        configuration.Calls.Adrian ??= new ContactCallConfiguration { DisplayName = "Contact 1" };
+        configuration.Calls.Yvonne ??= new ContactCallConfiguration { DisplayName = "Contact 2" };
+        configuration.AudioRouting ??= new AudioRoutingConfiguration();
+        configuration.Lighting ??= new LightingConfiguration();
+        configuration.DisplaySchedule ??= new DisplayScheduleConfiguration();
+        configuration.Startup ??= new StartupConfiguration();
+        configuration.Updates ??= new UpdateConfiguration();
+        configuration.IrCommands ??= new(StringComparer.OrdinalIgnoreCase);
+        if (configuration.VolumeStepPercent is < 1 or > 25)
         {
             _warnings.Add("VolumeStepPercent must be 1..25; using 5.");
-            Current.VolumeStepPercent = 5;
+            configuration.VolumeStepPercent = 5;
         }
-        if (Current.VolumeHoldStepPercent is < 1 or > 10)
+        if (configuration.VolumeHoldStepPercent is < 1 or > 10)
         {
             _warnings.Add("VolumeHoldStepPercent must be 1..10; using 2.");
-            Current.VolumeHoldStepPercent = 2;
+            configuration.VolumeHoldStepPercent = 2;
         }
-        if (Current.Controller.BaudRate != 115200)
+        if (configuration.Controller.BaudRate != 115200)
         {
             _warnings.Add("Only 115200 baud is supported; using 115200.");
-            Current.Controller.BaudRate = 115200;
+            configuration.Controller.BaudRate = 115200;
         }
-        if (!Current.Controller.Protocol.Equals("DCB/1", StringComparison.Ordinal))
+        if (!string.Equals(configuration.Controller.Protocol, "DCB/1", StringComparison.Ordinal))
         {
             _warnings.Add("Unsupported controller protocol; using DCB/1.");
-            Current.Controller.Protocol = "DCB/1";
+            configuration.Controller.Protocol = "DCB/1";
         }
-        if (string.IsNullOrWhiteSpace(Current.Calls.Adrian.DisplayName)) Current.Calls.Adrian.DisplayName = "Contact 1";
-        if (string.IsNullOrWhiteSpace(Current.Calls.Yvonne.DisplayName)) Current.Calls.Yvonne.DisplayName = "Contact 2";
-        if (!TimeOnly.TryParseExact(Current.Calls.QuietHours.From, "HH:mm", out _))
+        if (string.IsNullOrWhiteSpace(configuration.Calls.Adrian.DisplayName)) configuration.Calls.Adrian.DisplayName = "Contact 1";
+        if (string.IsNullOrWhiteSpace(configuration.Calls.Yvonne.DisplayName)) configuration.Calls.Yvonne.DisplayName = "Contact 2";
+        if (!TimeOnly.TryParseExact(configuration.Calls.QuietHours.From, "HH:mm", out _))
         {
             _warnings.Add("Call quiet-hours start is invalid; using 22:00.");
-            Current.Calls.QuietHours.From = "22:00";
+            configuration.Calls.QuietHours.From = "22:00";
         }
-        if (!TimeOnly.TryParseExact(Current.Calls.QuietHours.Until, "HH:mm", out _))
+        if (!TimeOnly.TryParseExact(configuration.Calls.QuietHours.Until, "HH:mm", out _))
         {
             _warnings.Add("Call quiet-hours end is invalid; using 07:00.");
-            Current.Calls.QuietHours.Until = "07:00";
+            configuration.Calls.QuietHours.Until = "07:00";
         }
-        if (!TimeOnly.TryParseExact(Current.DisplaySchedule.BlackoutFrom, "HH:mm", out _))
+        if (!TimeOnly.TryParseExact(configuration.DisplaySchedule.BlackoutFrom, "HH:mm", out _))
         {
             _warnings.Add("Display blackout time is invalid; using 22:00.");
-            Current.DisplaySchedule.BlackoutFrom = "22:00";
+            configuration.DisplaySchedule.BlackoutFrom = "22:00";
         }
-        if (!TimeOnly.TryParseExact(Current.DisplaySchedule.ResumeAt, "HH:mm", out _))
+        if (!TimeOnly.TryParseExact(configuration.DisplaySchedule.ResumeAt, "HH:mm", out _))
         {
             _warnings.Add("Display resume time is invalid; using 07:00.");
-            Current.DisplaySchedule.ResumeAt = "07:00";
+            configuration.DisplaySchedule.ResumeAt = "07:00";
         }
     }
 }

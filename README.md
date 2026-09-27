@@ -81,6 +81,14 @@ screen again immediately when the current time is still inside the set period.
 While the screen is black, the six illuminated panel buttons use the
 controller's lowest non-zero PWM level. Waking the screen restores the configured
 panel brightness.
+Holding the physical Stop/Home button for 1.5 seconds also blacks out the screen
+immediately. Its normal Stop action still runs on button-down, so media and calls
+are stopped without waiting for the hold threshold.
+
+The setup page can export all console settings to an indented JSON file and
+import that file on another computer. Imports are validated and saved atomically;
+an invalid file leaves the current settings unchanged. Media files and contact
+photos are referenced by path and must be copied separately.
 
 Optional call quiet hours can block both incoming and outgoing calls during a
 daily local-time range, including ranges across midnight such as 22:00–07:00.
@@ -124,7 +132,7 @@ Create the self-contained application and Windows Installer package:
 ```powershell
 .\tools\Publish-DadConsole.ps1
 .\tools\Build-Msi.ps1
-msiexec.exe /i .\dist\DementiaComputerButtons-0.1.1-x64.msi
+msiexec.exe /i .\dist\DementiaComputerButtons-0.1.2-x64.msi
 ```
 
 The MSI is self-contained and creates an all-users Start Menu shortcut. The
@@ -134,6 +142,12 @@ comes through Windows Update. Enable automatic launch with the **Start Dementia
 Computer Buttons automatically after Windows sign-in** setting in the console.
 See [build-and-install.md](docs/build-and-install.md) for clean-machine build,
 installation, logging, firmware, upgrade and release instructions.
+
+The Required applications list also checks Arduino CLI. The Arduino connection
+section can flash the bundled KS0501 firmware after explicit confirmation. It
+only permits the operation after a successful DCB handshake, checks the bundled
+HEX file with SHA-256, releases the detected COM port, uploads as
+`arduino:avr:uno`, reconnects, and verifies the reported firmware version.
 
 The application checks the public GitHub release channel at startup. A newer
 version is offered only when its MSI has a matching SHA-256 release asset;

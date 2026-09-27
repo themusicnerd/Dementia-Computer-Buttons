@@ -6,6 +6,12 @@ The Windows application and MSI target 64-bit Windows 11. The published
 application is self-contained, so a Dad Console PC does not need a separate
 .NET runtime. Building from source requires the .NET 8 SDK.
 
+Arduino CLI is optional for normal use but required for the in-application
+controller firmware updater. It can be installed from the console's Required
+applications section through the trusted winget package. If the AVR core is
+missing, the updater asks Arduino CLI to install the official `arduino:avr`
+platform before uploading.
+
 ## Build and test from source
 
 From a PowerShell terminal in the repository root:
@@ -50,7 +56,7 @@ The build uses the pinned `WixToolset.Sdk` 5.0.2 package from NuGet. No global
 WiX installation is required. The resulting installer is:
 
 ```text
-dist\DementiaComputerButtons-0.1.1-x64.msi
+dist\DementiaComputerButtons-0.1.2-x64.msi
 ```
 
 The MSI installs for all users under `Program Files\Dementia Computer Buttons`,
@@ -86,13 +92,13 @@ release channel.
 Use Explorer or an elevated PowerShell terminal:
 
 ```powershell
-msiexec.exe /i .\dist\DementiaComputerButtons-0.1.1-x64.msi
+msiexec.exe /i .\dist\DementiaComputerButtons-0.1.2-x64.msi
 ```
 
 For a diagnostic installation log:
 
 ```powershell
-msiexec.exe /i .\dist\DementiaComputerButtons-0.1.1-x64.msi /l*v .\dcb-install.log
+msiexec.exe /i .\dist\DementiaComputerButtons-0.1.2-x64.msi /l*v .\dcb-install.log
 ```
 
 Uninstall through Windows **Settings > Apps > Installed apps**, or by invoking

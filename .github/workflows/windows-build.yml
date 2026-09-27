@@ -38,8 +38,8 @@ jobs:
       - name: Upload installer artifact
         uses: actions/upload-artifact@v7
         with:
-          name: DementiaComputerButtons-0.1.1-x64
+          name: DementiaComputerButtons-0.1.2-x64
           path: |
-            dist/DementiaComputerButtons-0.1.1-x64.msi
-            dist/DementiaComputerButtons-0.1.1-x64.msi.sha256
+            dist/DementiaComputerButtons-0.1.2-x64.msi
+            dist/DementiaComputerButtons-0.1.2-x64.msi.sha256
           if-no-files-found: error

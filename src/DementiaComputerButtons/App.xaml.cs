@@ -172,6 +172,7 @@ public partial class App : WpfApplication
         services.AddSingleton<IStartupService, WindowsStartupService>();
         services.AddSingleton<IUpdateService, GitHubUpdateService>();
         services.AddSingleton<IApplicationManagerService, ApplicationManagerService>();
+        services.AddSingleton<IFirmwareUpdateService, FirmwareUpdateService>();
         services.AddSingleton<CallEventBridge>();
         services.AddSingleton<DisplayScheduleService>();
         services.AddSingleton<IDisplayScheduleService>(provider => provider.GetRequiredService<DisplayScheduleService>());

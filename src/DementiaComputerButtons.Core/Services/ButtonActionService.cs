@@ -62,8 +62,14 @@ public sealed class ButtonActionService(
         }
         else if (isDown && configuration.Current.LongPressButtonMappings.ContainsKey(buttonEvent.Button))
         {
-            lock (_pendingShortPresses) _pendingShortPresses.Add(buttonEvent.Button);
-            return;
+            configuration.Current.ButtonMappings.TryGetValue(buttonEvent.Button, out var immediateAction);
+            if (immediateAction?.Equals("STOP", StringComparison.OrdinalIgnoreCase) == true ||
+                immediateAction?.Equals("HOME", StringComparison.OrdinalIgnoreCase) == true) action = immediateAction;
+            else
+            {
+                lock (_pendingShortPresses) _pendingShortPresses.Add(buttonEvent.Button);
+                return;
+            }
         }
         else if (isUp)
         {
@@ -156,6 +162,9 @@ public sealed class ButtonActionService(
                     logging.Warning("speakers_toggle_unavailable", "Windows could not switch the selected audio output device.");
                 }
                 break;
+            case "BLACKOUT":
+                displaySchedule?.BlackoutNow();
+                break;
             default:
                 logging.Warning("button_action_unknown", $"Unknown mapped action {action}");
                 break;
@@ -234,6 +243,7 @@ public sealed class ButtonActionService(
         "CALL_ADRIAN" => $"Action: call {DisplayName(configuration.Current.Calls.Adrian.DisplayName, "contact 1")} on {DisplayName(configuration.Current.Calls.Adrian.Method, "unconfigured")}",
         "CALL_YVONNE" => $"Action: call {DisplayName(configuration.Current.Calls.Yvonne.DisplayName, "contact 2")} on {DisplayName(configuration.Current.Calls.Yvonne.Method, "unconfigured")}",
         "SPEAKERS_TOGGLE" => audioRouting.SpeakersMuted ? "Action: switch to speakers" : "Action: switch to headphones",
+        "BLACKOUT" => "Action: black out display",
         _ => $"Action: {action}"
     };
 

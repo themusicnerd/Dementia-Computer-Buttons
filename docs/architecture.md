@@ -63,6 +63,20 @@ never changed by either action. Its blackout-state event also drives
 `PanelLightingService`: an active blackout selects the lowest non-zero firmware
 PWM level, while wake, calls and the end of the scheduled period restore the
 operator's configured brightness.
+Manual blackout uses the same state and lighting path. A Stop/Home long-press
+sets a manual blackout latch; keyboard or mouse input clears it. The Stop action
+still executes immediately on the initial DOWN event.
+
+Configuration import/export stays behind `IConfigurationService`. Export writes
+the complete human-readable JSON model. Import deserializes and validates a
+candidate before replacing the live model, then atomically saves the accepted
+configuration. Malformed input never replaces working settings.
+
+`FirmwareUpdateService` requires a live KS0501 handshake and captures that
+specific COM port before stopping serial discovery. It verifies the bundled HEX
+hash, uses trusted Arduino CLI tooling to upload as an Uno, restarts discovery,
+and accepts success only when the controller reconnects with the bundled
+firmware version.
 
 ## Configuration and personal data
 

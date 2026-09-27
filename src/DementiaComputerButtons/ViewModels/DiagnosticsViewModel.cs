@@ -42,6 +42,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
     private readonly ICallService _calls;
     private readonly IStartupService _startup;
     private readonly IUpdateService _updates;
+    private readonly IFirmwareUpdateService _firmwareUpdate;
     private readonly DisplayScheduleService _displaySchedule;
     private readonly IUserPromptService _prompts;
     private readonly ILoggingService _logging;
@@ -91,6 +92,8 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
     private string _updateStatus = "Not checked";
     private bool _canInstallUpdate;
     private UpdateRelease? _availableUpdate;
+    private string _firmwareUpdateStatus = "Not checked";
+    private double _panelBrightness = 100;
 
     public DiagnosticsViewModel(IArduinoService arduino, IVolumeService volume, ISystemStateService state, IButtonActionService actions,
         IConfigurationService configuration,
@@ -99,6 +102,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         ICallService calls,
         IStartupService startup,
         IUpdateService updates,
+        IFirmwareUpdateService firmwareUpdate,
         DisplayScheduleService displaySchedule,
         IUserPromptService prompts, ILoggingService logging)
     {
@@ -112,6 +116,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         _calls = calls;
         _startup = startup;
         _updates = updates;
+        _firmwareUpdate = firmwareUpdate;
         _displaySchedule = displaySchedule;
         _prompts = prompts;
         _logging = logging;
@@ -134,6 +139,8 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         BrowseAdrianPhotoCommand = new RelayCommand(_ => AdrianPhotoPath = BrowseForPhoto(AdrianPhotoPath) ?? AdrianPhotoPath);
         BrowseYvonnePhotoCommand = new RelayCommand(_ => YvonnePhotoPath = BrowseForPhoto(YvonnePhotoPath) ?? YvonnePhotoPath);
         SaveContentCommand = new AsyncRelayCommand(SaveContentAsync);
+        ExportSettingsCommand = new AsyncRelayCommand(ExportSettingsAsync);
+        ImportSettingsCommand = new AsyncRelayCommand(ImportSettingsAsync);
         RefreshAudioDevicesCommand = new RelayCommand(_ => RefreshAudioDevices());
         RefreshApplicationsCommand = new RelayCommand(_ => RefreshApplications());
         InstallApplicationCommand = new AsyncParameterCommand(InstallApplicationAsync);
@@ -141,6 +148,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         OpenActivityLogCommand = new RelayCommand(_ => OpenActivityLogFolder());
         CheckForUpdatesCommand = new AsyncRelayCommand(() => CheckForUpdatesAsync(false));
         InstallUpdateCommand = new AsyncRelayCommand(InstallUpdateAsync);
+        UpdateControllerFirmwareCommand = new AsyncRelayCommand(UpdateControllerFirmwareAsync);
 
         var buttonNames = new[] { "Volume Down", "Volume Up", NormalizeName(configuration.Current.Calls.Adrian.DisplayName, "Contact 1"),
             NormalizeName(configuration.Current.Calls.Yvonne.DisplayName, "Contact 2"), "TV", "Video", "Stop/Home", "Speakers" };
@@ -189,9 +197,10 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         PanelBrightness = configuration.Current.Lighting.PanelBrightnessPercent;
         RefreshApplications();
         UpdateStatus = $"Version {_updates.CurrentVersion.ToString(3)}";
+        RefreshFirmwareUpdateStatus();
         if (configuration.Current.Updates.CheckAutomatically) _ = CheckForUpdatesAsync(true);
 
-        _arduino.ConnectionChanged += (_, snapshot) => OnUi(() => ApplyConnection(snapshot));
+        _arduino.ConnectionChanged += (_, snapshot) => OnUi(() => { ApplyConnection(snapshot); RefreshFirmwareUpdateStatus(); });
         _arduino.SensorsChanged += (_, snapshot) => OnUi(() => ApplySensors(snapshot));
         _arduino.ButtonChanged += (_, button) => OnUi(() => ApplyButton(button));
         _arduino.MessageReceived += (_, message) => OnUi(() => LastMessage = message);
@@ -227,6 +236,8 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
     public ICommand BrowseAdrianPhotoCommand { get; }
     public ICommand BrowseYvonnePhotoCommand { get; }
     public ICommand SaveContentCommand { get; }
+    public ICommand ExportSettingsCommand { get; }
+    public ICommand ImportSettingsCommand { get; }
     public ICommand RefreshAudioDevicesCommand { get; }
     public ICommand RefreshApplicationsCommand { get; }
     public ICommand InstallApplicationCommand { get; }
@@ -234,6 +245,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
     public ICommand OpenActivityLogCommand { get; }
     public ICommand CheckForUpdatesCommand { get; }
     public ICommand InstallUpdateCommand { get; }
+    public ICommand UpdateControllerFirmwareCommand { get; }
 
     public string ConnectionStatus { get => _connectionStatus; private set => Set(ref _connectionStatus, value); }
     public string Port { get => _port; private set => Set(ref _port, value); }
@@ -273,6 +285,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
     public bool StartWithWindows { get => _startWithWindows; set => Set(ref _startWithWindows, value); }
     public string UpdateStatus { get => _updateStatus; private set => Set(ref _updateStatus, value); }
     public bool CanInstallUpdate { get => _canInstallUpdate; private set => Set(ref _canInstallUpdate, value); }
+    public string FirmwareUpdateStatus { get => _firmwareUpdateStatus; private set => Set(ref _firmwareUpdateStatus, value); }
     public string? SelectedSpeakerDeviceId { get => _selectedSpeakerDeviceId; set => Set(ref _selectedSpeakerDeviceId, value); }
     public string? SelectedHeadphoneDeviceId { get => _selectedHeadphoneDeviceId; set => Set(ref _selectedHeadphoneDeviceId, value); }
     public string? SelectedSpeakerMicrophoneId { get => _selectedSpeakerMicrophoneId; set => Set(ref _selectedSpeakerMicrophoneId, value); }
@@ -283,7 +296,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
     public double Rgb2Red { get; set; }
     public double Rgb2Green { get; set; } = 180;
     public double Rgb2Blue { get; set; }
-    public double PanelBrightness { get; set; } = 100;
+    public double PanelBrightness { get => _panelBrightness; set => Set(ref _panelBrightness, value); }
 
     private void OpenActivityLogFolder()
     {
@@ -325,6 +338,36 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         {
             UpdateStatus = $"UPDATE FAILED: {exception.Message}";
             _logging.Error("update_install_failed", exception, exception.Message);
+        }
+    }
+
+    private void RefreshFirmwareUpdateStatus()
+    {
+        var current = _arduino.Connection;
+        FirmwareUpdateStatus = !_firmwareUpdate.IsToolAvailable
+            ? "Arduino CLI is not installed"
+            : !current.IsConnected
+                ? $"Connect the controller to install bundled firmware {_firmwareUpdate.BundledVersion}"
+                : $"Controller {current.FirmwareVersion ?? "unknown"}; bundled {_firmwareUpdate.BundledVersion}";
+    }
+
+    private async Task UpdateControllerFirmwareAsync()
+    {
+        if (!_prompts.Confirm(
+                $"Flash firmware {_firmwareUpdate.BundledVersion} to the connected KS0501 controller? Do not unplug it until verification finishes.",
+                "Update controller firmware")) return;
+        try
+        {
+            OperationStatus = $"Updating controller firmware to {_firmwareUpdate.BundledVersion}...";
+            await _firmwareUpdate.UpdateControllerAsync();
+            RefreshFirmwareUpdateStatus();
+            OperationStatus = $"Controller firmware {_firmwareUpdate.BundledVersion} installed and verified";
+        }
+        catch (Exception exception)
+        {
+            RefreshFirmwareUpdateStatus();
+            OperationStatus = $"FIRMWARE UPDATE FAILED: {exception.Message}";
+            _logging.Error("firmware_update_failed", exception, exception.Message);
         }
     }
 
@@ -397,6 +440,95 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
             OperationStatus = $"SAVE FAILED: {exception.Message}";
             _logging.Error("content_settings_save_failed", exception, exception.Message);
         }
+    }
+
+    private async Task ExportSettingsAsync()
+    {
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "Export Dementia Computer Buttons settings",
+            Filter = "JSON settings|*.json",
+            DefaultExt = ".json",
+            AddExtension = true,
+            OverwritePrompt = true,
+            FileName = $"DementiaComputerButtons-settings-{DateTime.Now:yyyyMMdd}.json"
+        };
+        if (dialog.ShowDialog() != true) return;
+
+        await SaveContentAsync();
+        if (OperationStatus.StartsWith("SAVE FAILED", StringComparison.OrdinalIgnoreCase)) return;
+        try
+        {
+            await _configuration.ExportAsync(dialog.FileName);
+            OperationStatus = $"Settings exported to {dialog.FileName}";
+            _logging.Information("settings_exported", dialog.FileName);
+        }
+        catch (Exception exception)
+        {
+            OperationStatus = $"EXPORT FAILED: {exception.Message}";
+            _logging.Error("settings_export_failed", exception, dialog.FileName);
+        }
+    }
+
+    private async Task ImportSettingsAsync()
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Import Dementia Computer Buttons settings",
+            Filter = "JSON settings|*.json|All files|*.*",
+            DefaultExt = ".json",
+            CheckFileExists = true
+        };
+        if (dialog.ShowDialog() != true) return;
+        if (!_prompts.Confirm(
+                "Replace this computer's Dementia Computer Buttons settings with the selected file? Media and photo files are not copied.",
+                "Import settings")) return;
+
+        try
+        {
+            await _configuration.ImportAsync(dialog.FileName);
+            LoadEditorFromConfiguration();
+            _startup.SetEnabled(StartWithWindows);
+            _displaySchedule.Evaluate();
+            OperationStatus = $"Settings imported from {dialog.FileName}";
+            _logging.Information("settings_imported", dialog.FileName);
+        }
+        catch (Exception exception)
+        {
+            OperationStatus = $"IMPORT FAILED: {exception.Message}";
+            _logging.Error("settings_import_failed", exception, dialog.FileName);
+        }
+    }
+
+    private void LoadEditorFromConfiguration()
+    {
+        var current = _configuration.Current;
+        YouTubeUrl = current.Content.YouTubeUrl;
+        VideoPath = current.Content.VideoPath;
+        SpotifyUrl = current.Content.SpotifyUrl;
+        PreferredBrowser = current.Content.PreferredBrowser;
+        StopVideoOnHome = current.Content.StopVideoOnHome;
+        AdrianDisplayName = NormalizeName(current.Calls.Adrian.DisplayName, "Contact 1");
+        AdrianCallMethod = current.Calls.Adrian.Method;
+        AdrianCallTarget = current.Calls.Adrian.Target;
+        AdrianPhotoPath = current.Calls.Adrian.PhotoPath;
+        YvonneDisplayName = NormalizeName(current.Calls.Yvonne.DisplayName, "Contact 2");
+        YvonneCallMethod = current.Calls.Yvonne.Method;
+        YvonneCallTarget = current.Calls.Yvonne.Target;
+        YvonnePhotoPath = current.Calls.Yvonne.PhotoPath;
+        CallQuietHoursEnabled = current.Calls.QuietHours.Enabled;
+        CallQuietFrom = current.Calls.QuietHours.From;
+        CallQuietUntil = current.Calls.QuietHours.Until;
+        DisplayScheduleEnabled = current.DisplaySchedule.Enabled;
+        BlackoutFrom = current.DisplaySchedule.BlackoutFrom;
+        ResumeAt = current.DisplaySchedule.ResumeAt;
+        StartWithWindows = current.Startup.StartWithWindows;
+        PanelBrightness = current.Lighting.PanelBrightnessPercent;
+        RefreshAudioDevices();
+        SelectedSpeakerDeviceId = ResolveSavedDeviceId(current.AudioRouting.SpeakerDeviceId, current.AudioRouting.SpeakerDeviceName);
+        SelectedHeadphoneDeviceId = ResolveSavedDeviceId(current.AudioRouting.HeadphoneDeviceId, current.AudioRouting.HeadphoneDeviceName);
+        SelectedSpeakerMicrophoneId = ResolveSavedInputDeviceId(current.AudioRouting.SpeakerMicrophoneId, current.AudioRouting.SpeakerMicrophoneName);
+        SelectedHeadphoneMicrophoneId = ResolveSavedInputDeviceId(current.AudioRouting.HeadphoneMicrophoneId, current.AudioRouting.HeadphoneMicrophoneName);
     }
 
     private void RefreshAudioDevices()

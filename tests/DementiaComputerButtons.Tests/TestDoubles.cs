@@ -42,6 +42,8 @@ internal sealed class TestConfiguration(AppConfiguration value) : IConfiguration
     public IReadOnlyList<string> Warnings => [];
     public Task LoadAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     public Task SaveAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+    public Task ExportAsync(string destinationPath, CancellationToken cancellationToken = default) => Task.CompletedTask;
+    public Task ImportAsync(string sourcePath, CancellationToken cancellationToken = default) => Task.CompletedTask;
 }
 
 internal sealed class TestAudioRouting : IAudioRoutingService
@@ -117,8 +119,10 @@ internal sealed class TestWindowsShell : IWindowsShellService
 internal sealed class TestDisplaySchedule : IDisplayScheduleService
 {
     public int RearmCount { get; private set; }
+    public int BlackoutCount { get; private set; }
     public bool IsBlackoutActive { get; set; }
     public event EventHandler<bool>? BlackoutStateChanged;
+    public void BlackoutNow() => BlackoutCount++;
     public void RearmBlackout() => RearmCount++;
     public void SetBlackout(bool active)
     {

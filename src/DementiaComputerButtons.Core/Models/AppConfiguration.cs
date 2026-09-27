@@ -20,7 +20,8 @@ public sealed class AppConfiguration
     };
     public Dictionary<string, string> LongPressButtonMappings { get; set; } = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["PANEL_5"] = "OPEN_SPOTIFY"
+        ["PANEL_5"] = "OPEN_SPOTIFY",
+        ["PANEL_7"] = "BLACKOUT"
     };
     public ContentConfiguration Content { get; set; } = new();
     public CallsConfiguration Calls { get; set; } = new();

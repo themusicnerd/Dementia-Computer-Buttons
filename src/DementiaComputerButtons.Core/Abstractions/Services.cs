@@ -49,6 +49,8 @@ public interface IConfigurationService
     IReadOnlyList<string> Warnings { get; }
     Task LoadAsync(CancellationToken cancellationToken = default);
     Task SaveAsync(CancellationToken cancellationToken = default);
+    Task ExportAsync(string destinationPath, CancellationToken cancellationToken = default);
+    Task ImportAsync(string sourcePath, CancellationToken cancellationToken = default);
 }
 
 public interface IAudioRoutingService
@@ -102,12 +104,19 @@ public interface IDisplayScheduleService
 {
     bool IsBlackoutActive { get; }
     event EventHandler<bool>? BlackoutStateChanged;
+    void BlackoutNow();
     void RearmBlackout();
 }
 public interface IApplicationManagerService
 {
     IReadOnlyList<ManagedApplication> Scan();
     Task<bool> InstallAsync(string key, CancellationToken cancellationToken = default);
+}
+public interface IFirmwareUpdateService
+{
+    string BundledVersion { get; }
+    bool IsToolAvailable { get; }
+    Task UpdateControllerAsync(CancellationToken cancellationToken = default);
 }
 public interface IIRService { bool IsHardwareAvailable { get; } }
 

@@ -16,7 +16,8 @@ public sealed class ApplicationManagerService(ILoggingService logging) : IApplic
         new("vlc", "VLC media player", "VideoLAN.VLC", FindVlc),
         new("zoom", "Zoom Workplace", "Zoom.Zoom", FindZoom),
         new("microsip", "MicroSIP", "MicroSIP.MicroSIP", FindMicroSip),
-        new("spotify", "Spotify", "Spotify.Spotify", FindSpotify)
+        new("spotify", "Spotify", "Spotify.Spotify", FindSpotify),
+        new("arduino-cli", "Arduino CLI", "ArduinoSA.CLI", FindArduinoCli)
     ];
 
     public IReadOnlyList<ManagedApplication> Scan() => Definitions.Select(definition =>
@@ -74,5 +75,9 @@ public sealed class ApplicationManagerService(ILoggingService logging) : IApplic
     private static string? FindZoom() => Existing(Roaming("Zoom", "bin", "Zoom.exe"), Pf("Zoom", "bin", "Zoom.exe"), Pfx86("Zoom", "bin", "Zoom.exe"));
     private static string? FindMicroSip() => Existing(Pf("MicroSIP", "microsip.exe"), Pfx86("MicroSIP", "microsip.exe"), Local("MicroSIP", "microsip.exe"));
     private static string? FindSpotify() => Existing(Roaming("Spotify", "Spotify.exe"));
+    private static string? FindArduinoCli() => Existing(
+        Pf("Arduino CLI", "arduino-cli.exe"),
+        Local("Microsoft", "WinGet", "Links", "arduino-cli.exe"),
+        Local("Microsoft", "WindowsApps", "arduino-cli.exe"));
     private static string? FindWinget() => Existing(Local("Microsoft", "WindowsApps", "winget.exe"));
 }

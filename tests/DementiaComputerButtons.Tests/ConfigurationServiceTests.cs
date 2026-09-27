@@ -66,4 +66,69 @@ public sealed class ConfigurationServiceTests
         }
         finally { File.Delete(path); }
     }
+
+    [Fact]
+    public async Task ExportsAndImportsPortableJsonSettings()
+    {
+        var activePath = Path.Combine(Path.GetTempPath(), $"dcb-active-{Guid.NewGuid():N}.json");
+        var exportPath = Path.Combine(Path.GetTempPath(), $"dcb-export-{Guid.NewGuid():N}.json");
+        try
+        {
+            var service = new ConfigurationService(activePath, new TestLog());
+            service.Current.Content.YouTubeUrl = "https://example.test/tv";
+            service.Current.Calls.Adrian.DisplayName = "Alex";
+            await service.ExportAsync(exportPath);
+
+            service.Current.Content.YouTubeUrl = "changed";
+            await service.ImportAsync(exportPath);
+
+            Assert.Equal("https://example.test/tv", service.Current.Content.YouTubeUrl);
+            Assert.Equal("Alex", service.Current.Calls.Adrian.DisplayName);
+            Assert.Equal("BLACKOUT", service.Current.LongPressButtonMappings["PANEL_7"]);
+            Assert.True(File.Exists(activePath));
+        }
+        finally
+        {
+            File.Delete(activePath);
+            File.Delete(exportPath);
+        }
+    }
+
+    [Fact]
+    public async Task InvalidImportDoesNotReplaceCurrentSettings()
+    {
+        var activePath = Path.Combine(Path.GetTempPath(), $"dcb-active-{Guid.NewGuid():N}.json");
+        var importPath = Path.Combine(Path.GetTempPath(), $"dcb-invalid-{Guid.NewGuid():N}.json");
+        try
+        {
+            var service = new ConfigurationService(activePath, new TestLog());
+            service.Current.Content.YouTubeUrl = "keep-this";
+            await File.WriteAllTextAsync(importPath, "not-json");
+
+            await Assert.ThrowsAsync<InvalidDataException>(() => service.ImportAsync(importPath));
+
+            Assert.Equal("keep-this", service.Current.Content.YouTubeUrl);
+        }
+        finally
+        {
+            File.Delete(activePath);
+            File.Delete(importPath);
+        }
+    }
+
+    [Fact]
+    public async Task LegacySettingsGainStopLongPressBlackoutMapping()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"dcb-legacy-{Guid.NewGuid():N}.json");
+        try
+        {
+            await File.WriteAllTextAsync(path, """{"longPressButtonMappings":{"PANEL_5":"OPEN_SPOTIFY"}}""");
+            var service = new ConfigurationService(path, new TestLog());
+
+            await service.LoadAsync();
+
+            Assert.Equal("BLACKOUT", service.Current.LongPressButtonMappings["PANEL_7"]);
+        }
+        finally { File.Delete(path); }
+    }
 }

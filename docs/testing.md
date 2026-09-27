@@ -136,3 +136,16 @@ became active, then 36% immediately after a mouse click woke the screen. The
 user configuration was restored byte-for-byte after the test. The Release build
 passed 48/48 automated tests. The final 57,499,648-byte 0.1.1 MSI has SHA-256
 `FCDBC27D40CF89DB130D9BC60790490765104AFFEC10100B329BF17EA7D514D3`.
+
+The 0.1.2 revision adds Stop/Home long-press blackout, atomic JSON settings
+import/export and a confirmed in-application controller firmware workflow.
+Automated coverage verifies immediate Stop behavior alongside the later
+long-press blackout event, portable settings round trips, legacy configuration
+migration, and rejection of malformed imports without replacing live settings.
+The updater was then exercised through the live 0.1.2 WPF console against the
+connected KS0501 on COM3. It logged firmware update start, completed the verified
+Uno upload, reconnected automatically, and accepted success only after the DCB
+handshake again reported firmware 0.2.1.
+The final 0.1.2 Release build completed with zero warnings and passed 52/52
+tests. Its 57,528,320-byte MSI has SHA-256
+`3845C97BEF7AACA7CA23198058195F5A3A6C24279A66ADBF20C07BF5EB582A9B`.

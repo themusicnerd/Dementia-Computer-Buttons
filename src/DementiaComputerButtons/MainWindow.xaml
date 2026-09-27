@@ -79,9 +79,14 @@
                                 <TextBlock Text="from" Margin="12,0,4,0"/><TextBox Text="{Binding BlackoutFrom, UpdateSourceTrigger=PropertyChanged}" Width="58"/>
                                 <TextBlock Text="until" Margin="12,0,4,0"/><TextBox Text="{Binding ResumeAt, UpdateSourceTrigger=PropertyChanged}" Width="58"/>
                             </StackPanel>
-                            <TextBlock Text="Use 24-hour times (HH:mm). Calls temporarily wake the display; blackout uses the lowest button-light brightness." Foreground="#52606D" TextWrapping="Wrap"/>
+                            <TextBlock Text="Use 24-hour times (HH:mm). Calls temporarily wake the display; blackout uses the lowest button-light brightness. Hold Stop/Home for 1.5 seconds to black out immediately." Foreground="#52606D" TextWrapping="Wrap"/>
                             <CheckBox Content="Start Dementia Computer Buttons automatically after Windows sign-in" IsChecked="{Binding StartWithWindows}" Margin="5"/>
-                            <Button Content="Save console settings" Command="{Binding SaveContentCommand}" HorizontalAlignment="Left"/>
+                            <WrapPanel>
+                                <Button Content="Save console settings" Command="{Binding SaveContentCommand}"/>
+                                <Button Content="Export settings..." Command="{Binding ExportSettingsCommand}"/>
+                                <Button Content="Import settings..." Command="{Binding ImportSettingsCommand}"/>
+                            </WrapPanel>
+                            <TextBlock Text="Export creates a portable JSON file. Local videos, photos and applications must be copied or installed separately." Foreground="#52606D" TextWrapping="Wrap"/>
                         </StackPanel>
                     </GroupBox>
 
@@ -105,6 +110,7 @@
                     </GroupBox>
 
                     <GroupBox Header="Arduino connection">
+                        <StackPanel>
                         <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition Width="145"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
@@ -118,6 +124,11 @@
                             <TextBlock Grid.Row="5" Text="Communication errors"/><TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding CommunicationErrors}"/>
                             <TextBlock Grid.Row="6" Text="Last message"/><TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding LastMessage}" TextWrapping="Wrap"/>
                         </Grid>
+                        <Separator Margin="0,8"/>
+                        <TextBlock Text="{Binding FirmwareUpdateStatus}" TextWrapping="Wrap"/>
+                        <Button Content="Update controller firmware" Command="{Binding UpdateControllerFirmwareCommand}" HorizontalAlignment="Left"/>
+                        <TextBlock Text="Only the handshaken KS0501 is flashed. The app releases the COM port, uploads verified Uno firmware, then reconnects and checks the reported version." Foreground="#52606D" TextWrapping="Wrap"/>
+                        </StackPanel>
                     </GroupBox>
 
                     <GroupBox Header="Live inputs">

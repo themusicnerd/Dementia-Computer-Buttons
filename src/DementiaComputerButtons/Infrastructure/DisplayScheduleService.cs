@@ -13,6 +13,7 @@ public sealed class DisplayScheduleService(
 {
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(20) };
     private bool _manuallyWoken;
+    private bool _manualBlackout;
     private bool _isBlackoutActive;
 
     public bool IsBlackoutActive => _isBlackoutActive;
@@ -23,6 +24,7 @@ public sealed class DisplayScheduleService(
         _timer.Tick += (_, _) => Evaluate();
         blackout.UserWakeRequested += (_, _) => blackout.Dispatcher.Invoke(() =>
         {
+            _manualBlackout = false;
             _manuallyWoken = true;
             SetBlackoutActive(false);
             logging.Information("activity_display", "Scheduled screen blackout temporarily disabled by keyboard or mouse");
@@ -44,8 +46,19 @@ public sealed class DisplayScheduleService(
     private void EvaluateCore()
     {
         var schedule = configuration.Current.DisplaySchedule;
-        if (!schedule.Enabled || calls.Current.Status is CallStatus.Incoming or CallStatus.Calling or CallStatus.Ringing or CallStatus.Connecting or CallStatus.Connected)
+        if (calls.Current.Status is CallStatus.Incoming or CallStatus.Calling or CallStatus.Ringing or CallStatus.Connecting or CallStatus.Connected)
         {
+            SetBlackoutActive(false);
+            return;
+        }
+        if (_manualBlackout)
+        {
+            SetBlackoutActive(true);
+            return;
+        }
+        if (!schedule.Enabled)
+        {
+            _manuallyWoken = false;
             SetBlackoutActive(false);
             return;
         }
@@ -89,6 +102,17 @@ public sealed class DisplayScheduleService(
         {
             _manuallyWoken = false;
             logging.Information("activity_display", "Scheduled screen blackout re-armed by Stop/Home");
+            EvaluateCore();
+        });
+    }
+
+    public void BlackoutNow()
+    {
+        blackout.Dispatcher.Invoke(() =>
+        {
+            _manualBlackout = true;
+            _manuallyWoken = false;
+            logging.Information("activity_display", "Display blacked out by Stop/Home long press");
             EvaluateCore();
         });
     }

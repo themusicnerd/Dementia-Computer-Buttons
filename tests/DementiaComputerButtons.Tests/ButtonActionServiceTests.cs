@@ -213,4 +213,24 @@ public sealed class ButtonActionServiceTests
 
         Assert.Equal(1, display.RearmCount);
     }
+
+    [Fact]
+    public async Task HoldingStopBlacksOutAfterStoppingImmediately()
+    {
+        var display = new TestDisplaySchedule();
+        var vlc = new TestVlc();
+        var service = new ButtonActionService(new TestVolume(), new TestConfiguration(new AppConfiguration()),
+            new SystemStateService(new TestLog()), new TestAudioRouting(), vlc, new TestBrowser(),
+            new TestCalls(), new TestOsd(), new TestLog(), null, display);
+
+        await service.HandleAsync(new ButtonEvent("PANEL_7", "DOWN", 1));
+        Assert.Equal(1, vlc.StopCount);
+        Assert.Equal(1, display.RearmCount);
+
+        await service.HandleAsync(new ButtonEvent("PANEL_7", "LONG", 1501));
+        await service.HandleAsync(new ButtonEvent("PANEL_7", "UP", 1600));
+
+        Assert.Equal(1, display.BlackoutCount);
+        Assert.Equal(1, vlc.StopCount);
+    }
 }

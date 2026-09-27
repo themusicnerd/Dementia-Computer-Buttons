@@ -54,4 +54,6 @@ file sealed class InMemoryConfiguration : IConfigurationService
     public IReadOnlyList<string> Warnings => [];
     public Task LoadAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     public Task SaveAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+    public Task ExportAsync(string destinationPath, CancellationToken cancellationToken = default) => Task.CompletedTask;
+    public Task ImportAsync(string sourcePath, CancellationToken cancellationToken = default) => Task.CompletedTask;
 }

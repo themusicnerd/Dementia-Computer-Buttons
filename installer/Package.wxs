@@ -1,7 +1,7 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <Package Name="Dementia Computer Buttons"
            Manufacturer="Dementia Computer Buttons"
-           Version="0.1.1"
+           Version="0.1.2"
            UpgradeCode="D17AE087-692F-42A5-B74B-14C04E6A14C4"
            Scope="perMachine">
     <SummaryInformation Description="Reliable physical-button control system for a Windows PC" />
