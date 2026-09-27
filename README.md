@@ -52,8 +52,10 @@ The window includes a clickable 3×3 preview of the physical panel. Its **Conten
 setup** section saves a YouTube video/live-stream URL, lets the operator browse
 for a local VLC video, and chooses whether Stop/Home closes VLC. Settings are
 stored under `%LOCALAPPDATA%\DementiaComputerButtons`, outside the executable.
-Minimizing the window hides it from the taskbar and leaves a Dementia Computer Buttons icon in
-the notification area beside the clock; double-click that icon to restore it.
+Minimizing the window or clicking its X button hides it from the taskbar and
+leaves a Dementia Computer Buttons icon in the notification area beside the
+clock. Double-click that icon to restore the console. To stop the controller
+application, right-click the icon and select **Exit Dementia Computer Buttons**.
 
 Contact 1 and Contact 2 can each independently use a Zoom link or a standard `sip:`
 address. MicroSIP is preferred because its command line supports both dialling
@@ -137,7 +139,7 @@ Create the self-contained application and Windows Installer package:
 ```powershell
 .\tools\Publish-DadConsole.ps1
 .\tools\Build-Msi.ps1
-msiexec.exe /i .\dist\DementiaComputerButtons-0.1.3-x64.msi
+msiexec.exe /i .\dist\DementiaComputerButtons-0.1.4-x64.msi
 ```
 
 The MSI is self-contained and creates an all-users Start Menu shortcut. The

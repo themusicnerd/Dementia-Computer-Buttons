@@ -17,6 +17,7 @@ public partial class App : WpfApplication
     private IHost? _host;
     private Forms.NotifyIcon? _trayIcon;
     private System.Drawing.Icon? _applicationIcon;
+    private bool _exitRequested;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -102,7 +103,7 @@ public partial class App : WpfApplication
         startupVolumeRead = false;
         var window = _host.Services.GetRequiredService<MainWindow>();
         MainWindow = window;
-        ShutdownMode = ShutdownMode.OnMainWindowClose;
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
         ConfigureTray(window);
         window.Show();
     }
@@ -111,9 +112,14 @@ public partial class App : WpfApplication
     {
         var menu = new Forms.ContextMenuStrip();
         menu.Items.Add("Open Dementia Computer Buttons", null, (_, _) => RestoreFromTray());
-        menu.Items.Add("Exit", null, (_, _) =>
+        menu.Items.Add(new Forms.ToolStripSeparator());
+        menu.Items.Add("Exit Dementia Computer Buttons", null, (_, _) =>
         {
-            Dispatcher.Invoke(window.Close);
+            Dispatcher.Invoke(() =>
+            {
+                _exitRequested = true;
+                Shutdown();
+            });
         });
         var executablePath = Environment.ProcessPath;
         if (!string.IsNullOrWhiteSpace(executablePath))
@@ -129,9 +135,20 @@ public partial class App : WpfApplication
         window.StateChanged += (_, _) =>
         {
             if (window.WindowState != WindowState.Minimized) return;
-            window.ShowInTaskbar = false;
-            window.Hide();
+            HideToTray(window);
         };
+        window.Closing += (_, args) =>
+        {
+            if (_exitRequested) return;
+            args.Cancel = true;
+            HideToTray(window);
+        };
+    }
+
+    private static void HideToTray(Window window)
+    {
+        window.ShowInTaskbar = false;
+        window.Hide();
     }
 
     private void RestoreFromTray()
@@ -212,5 +229,11 @@ public partial class App : WpfApplication
             _host.Dispose();
         }
         base.OnExit(e);
+    }
+
+    protected override void OnSessionEnding(SessionEndingCancelEventArgs e)
+    {
+        _exitRequested = true;
+        base.OnSessionEnding(e);
     }
 }
