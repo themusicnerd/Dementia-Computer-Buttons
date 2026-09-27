@@ -1,0 +1,52 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{29CF8959-7FCA-4BD0-9E5E-32E28987A8B9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DementiaComputerButtons.Core", "src\DementiaComputerButtons.Core\DementiaComputerButtons.Core.csproj", "{08730E64-B66F-4CBC-96F2-2B7A84244B20}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DementiaComputerButtons", "src\DementiaComputerButtons\DementiaComputerButtons.csproj", "{AA226245-7ABD-4275-BAC9-332628F02ACE}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{D69B55E9-E344-48C3-A45F-7828C528B210}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DementiaComputerButtons.Tests", "tests\DementiaComputerButtons.Tests\DementiaComputerButtons.Tests.csproj", "{CA554EC5-8E77-437C-B848-52B2262AFA0A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{4AF8AF60-2493-4681-8FCE-41EAA30A6CB4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ControllerDiagnostic", "tools\ControllerDiagnostic\ControllerDiagnostic.csproj", "{3C8CE8FB-F3EF-4743-B810-B1EB970C10EA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{08730E64-B66F-4CBC-96F2-2B7A84244B20}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{08730E64-B66F-4CBC-96F2-2B7A84244B20}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{08730E64-B66F-4CBC-96F2-2B7A84244B20}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{08730E64-B66F-4CBC-96F2-2B7A84244B20}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AA226245-7ABD-4275-BAC9-332628F02ACE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AA226245-7ABD-4275-BAC9-332628F02ACE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AA226245-7ABD-4275-BAC9-332628F02ACE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AA226245-7ABD-4275-BAC9-332628F02ACE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CA554EC5-8E77-437C-B848-52B2262AFA0A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CA554EC5-8E77-437C-B848-52B2262AFA0A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CA554EC5-8E77-437C-B848-52B2262AFA0A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CA554EC5-8E77-437C-B848-52B2262AFA0A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C8CE8FB-F3EF-4743-B810-B1EB970C10EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C8CE8FB-F3EF-4743-B810-B1EB970C10EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C8CE8FB-F3EF-4743-B810-B1EB970C10EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C8CE8FB-F3EF-4743-B810-B1EB970C10EA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{08730E64-B66F-4CBC-96F2-2B7A84244B20} = {29CF8959-7FCA-4BD0-9E5E-32E28987A8B9}
+		{AA226245-7ABD-4275-BAC9-332628F02ACE} = {29CF8959-7FCA-4BD0-9E5E-32E28987A8B9}
+		{CA554EC5-8E77-437C-B848-52B2262AFA0A} = {D69B55E9-E344-48C3-A45F-7828C528B210}
+		{3C8CE8FB-F3EF-4743-B810-B1EB970C10EA} = {4AF8AF60-2493-4681-8FCE-41EAA30A6CB4}
+	EndGlobalSection
+EndGlobal

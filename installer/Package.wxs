@@ -1,0 +1,44 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="Dementia Computer Buttons"
+           Manufacturer="Dementia Computer Buttons"
+           Version="0.1.0"
+           UpgradeCode="D17AE087-692F-42A5-B74B-14C04E6A14C4"
+           Scope="perMachine">
+    <SummaryInformation Description="Reliable physical-button control system for a Windows PC" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Dementia Computer Buttons is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Dementia Computer Buttons" />
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ProgramMenuDirectory" Name="Dementia Computer Buttons" />
+    </StandardDirectory>
+
+    <Feature Id="MainFeature" Title="Dementia Computer Buttons" Level="1">
+      <ComponentGroupRef Id="PublishedApplication" />
+      <ComponentRef Id="StartMenuShortcut" />
+    </Feature>
+
+    <ComponentGroup Id="PublishedApplication" Directory="INSTALLFOLDER">
+      <Files Include="$(var.PublishDir)\**" />
+    </ComponentGroup>
+
+    <DirectoryRef Id="ProgramMenuDirectory">
+      <Component Id="StartMenuShortcut" Guid="1F4BD86C-FCC6-4097-A0E8-57FA02E92381">
+        <Shortcut Id="ApplicationStartMenuShortcut"
+                  Name="Dementia Computer Buttons"
+                  Description="Open Dementia Computer Buttons"
+                  Target="[INSTALLFOLDER]DementiaComputerButtons.exe"
+                  WorkingDirectory="INSTALLFOLDER" />
+        <RemoveFolder Id="RemoveProgramMenuDirectory" Directory="ProgramMenuDirectory" On="uninstall" />
+        <RegistryValue Root="HKCU"
+                       Key="Software\DementiaComputerButtons"
+                       Name="Installed"
+                       Type="integer"
+                       Value="1"
+                       KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+  </Package>
+</Wix>

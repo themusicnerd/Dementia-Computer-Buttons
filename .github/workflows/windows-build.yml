@@ -1,0 +1,45 @@
+name: Windows build
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore DementiaComputerButtons.sln
+
+      - name: Build and test
+        shell: pwsh
+        run: |
+          dotnet build DementiaComputerButtons.sln --configuration Release --no-restore
+          dotnet test DementiaComputerButtons.sln --configuration Release --no-build
+
+      - name: Build self-contained application and MSI
+        shell: pwsh
+        run: .\tools\Build-Msi.ps1
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DementiaComputerButtons-0.1.0-x64
+          path: |
+            dist/DementiaComputerButtons-0.1.0-x64.msi
+            dist/DementiaComputerButtons-0.1.0-x64.msi.sha256
+          if-no-files-found: error

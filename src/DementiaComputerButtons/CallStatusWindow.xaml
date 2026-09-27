@@ -1,0 +1,29 @@
+<Window x:Class="DementiaComputerButtons.CallStatusWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None" ResizeMode="NoResize" WindowState="Maximized"
+        ShowInTaskbar="False" Topmost="True" Background="#101820">
+    <Grid Margin="50">
+        <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <Border CornerRadius="18" Background="#1B2B3A" HorizontalAlignment="Center" VerticalAlignment="Center" Width="420" Height="420">
+            <Grid>
+                <TextBlock x:Name="InitialText" Text="?" Foreground="White" FontSize="180" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <Image x:Name="ContactPhoto" Stretch="UniformToFill"/>
+            </Grid>
+        </Border>
+        <TextBlock x:Name="StatusText" Grid.Row="1" Text="INCOMING CALL" Foreground="#80E6A7" FontSize="44" FontWeight="Bold" HorizontalAlignment="Center" Margin="10"/>
+        <TextBlock x:Name="NameText" Grid.Row="2" Text="Caller" Foreground="White" FontSize="70" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"/>
+        <TextBlock x:Name="DetailsText" Grid.Row="3" Text="SIP" Foreground="#C7D5E0" FontSize="28" HorizontalAlignment="Center" Margin="8"/>
+        <Border Grid.Row="4" Background="#182633" CornerRadius="14" Padding="22" Width="760" HorizontalAlignment="Center" Margin="10">
+            <StackPanel>
+                <DockPanel Margin="0,4"><TextBlock Text="YOU: MICROPHONE" Foreground="White" FontSize="23" FontWeight="SemiBold" Width="245"/><ProgressBar x:Name="MicrophoneMeter" Minimum="0" Maximum="100" Height="30" Width="450" Foreground="#42D66B" Background="#34495A"/></DockPanel>
+                <DockPanel Margin="0,4"><TextBlock Text="THEM: SPEAKER" Foreground="White" FontSize="23" FontWeight="SemiBold" Width="245"/><ProgressBar x:Name="SpeakerMeter" Minimum="0" Maximum="100" Height="30" Width="450" Foreground="#48A9FF" Background="#34495A"/></DockPanel>
+                <TextBlock Text="The bars show live sound levels only. No audio is recorded." Foreground="#92A8B8" FontSize="16" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+            </StackPanel>
+        </Border>
+        <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Center" Margin="10,18">
+            <Button x:Name="AnswerButton" Content="ANSWER" Click="Answer_Click" Background="#16883D" Foreground="White" FontSize="34" FontWeight="Bold" Padding="45,22" Margin="12"/>
+            <Button Content="STOP / END" Click="End_Click" Background="#C62828" Foreground="White" FontSize="34" FontWeight="Bold" Padding="45,22" Margin="12"/>
+        </StackPanel>
+    </Grid>
+</Window>

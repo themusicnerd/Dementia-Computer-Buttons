@@ -1,0 +1,215 @@
+<Window x:Class="DementiaComputerButtons.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Dementia Computer Buttons: Engineering Diagnostics" Height="860" Width="1120"
+        MinHeight="700" MinWidth="900" Background="#F2F4F7">
+    <Window.Resources>
+        <Style TargetType="GroupBox"><Setter Property="Margin" Value="6"/><Setter Property="Padding" Value="10"/></Style>
+        <Style TargetType="Button"><Setter Property="Margin" Value="4"/><Setter Property="Padding" Value="12,7"/><Setter Property="MinWidth" Value="78"/></Style>
+        <Style TargetType="TextBlock"><Setter Property="VerticalAlignment" Value="Center"/></Style>
+    </Window.Resources>
+    <Grid Margin="10">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <Border Background="#1C2B39" CornerRadius="6" Padding="14" Margin="6">
+            <DockPanel>
+                <StackPanel>
+                    <TextBlock Text="Dementia Computer Buttons" Foreground="White" FontSize="24" FontWeight="SemiBold"/>
+                    <TextBlock Text="Engineering diagnostics: DCB/1" Foreground="#BFD4E5"/>
+                </StackPanel>
+                <StackPanel DockPanel.Dock="Right" HorizontalAlignment="Right">
+                    <TextBlock Text="{Binding ConnectionStatus}" Foreground="#80E6A7" FontSize="17" FontWeight="Bold"/>
+                    <TextBlock Text="{Binding OperationStatus}" Foreground="White"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <GroupBox Header="Physical console: clickable preview">
+                        <UniformGrid Rows="3" Columns="3" HorizontalAlignment="Center">
+                            <Button Background="White" Foreground="#17202A" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_1" AutomationProperties.Name="Volume down"><StackPanel><TextBlock Text="&#x2212;" FontSize="30" HorizontalAlignment="Center"/><TextBlock Text="Volume down"/></StackPanel></Button>
+                            <Button Background="White" Foreground="#17202A" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_8" AutomationProperties.Name="Mute speakers"><StackPanel><TextBlock Text="&#x1F507;" FontFamily="Segoe UI Emoji" FontSize="23" HorizontalAlignment="Center"/><TextBlock Text="Mute speakers"/></StackPanel></Button>
+                            <Button Background="White" Foreground="#17202A" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_2" AutomationProperties.Name="Volume up"><StackPanel><TextBlock Text="+" FontSize="30" HorizontalAlignment="Center"/><TextBlock Text="Volume up"/></StackPanel></Button>
+                            <Button Background="#FBC02D" Foreground="#17202A" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_6" AutomationProperties.Name="Play video"><StackPanel><TextBlock Text="&#x25B6;" FontSize="25" HorizontalAlignment="Center"/><TextBlock Text="Video"/></StackPanel></Button>
+                            <Border Background="Transparent" Width="100" Height="74"/>
+                            <Button Background="#FBC02D" Foreground="#17202A" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_5" AutomationProperties.Name="Watch TV" ToolTip="Short press: TV. Hold physical button: Spotify."><StackPanel><TextBlock Text="TV" FontSize="23" FontWeight="Bold" HorizontalAlignment="Center"/><TextBlock Text="Watch TV"/></StackPanel></Button>
+                            <Button Background="#1976D2" Foreground="White" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_4" AutomationProperties.Name="Call contact two"><StackPanel><TextBlock Text="2" FontSize="25" FontWeight="Bold" HorizontalAlignment="Center"/><TextBlock Text="{Binding YvonneDisplayName}"/></StackPanel></Button>
+                            <Button Background="#D32F2F" Foreground="White" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_7" AutomationProperties.Name="Stop and return home"><StackPanel><TextBlock Text="&#x25A0;" FontSize="25" HorizontalAlignment="Center"/><TextBlock Text="Stop / Home"/></StackPanel></Button>
+                            <Button Background="#1976D2" Foreground="White" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_3" AutomationProperties.Name="Call contact one"><StackPanel><TextBlock Text="1" FontSize="25" FontWeight="Bold" HorizontalAlignment="Center"/><TextBlock Text="{Binding AdrianDisplayName}"/></StackPanel></Button>
+                        </UniformGrid>
+                    </GroupBox>
+
+                    <GroupBox Header="Content setup">
+                        <StackPanel>
+                            <TextBlock Text="TV: YouTube video or live-stream URL" FontWeight="SemiBold"/>
+                            <TextBox Text="{Binding YouTubeUrl, UpdateSourceTrigger=PropertyChanged}" Margin="4" MinWidth="390"/>
+                            <TextBlock Text="Spotify: opened by holding the TV button" FontWeight="SemiBold" Margin="0,6,0,0"/>
+                            <TextBox Text="{Binding SpotifyUrl, UpdateSourceTrigger=PropertyChanged}" Margin="4"/>
+                            <DockPanel Margin="4"><TextBlock Text="Browser" Width="100"/><ComboBox SelectedValue="{Binding PreferredBrowser}" SelectedValuePath="Content" Width="150"><ComboBoxItem Content="Edge"/><ComboBoxItem Content="Chrome"/></ComboBox><TextBlock Text="Used for YouTube and Spotify" Margin="8,0" Foreground="#52606D"/></DockPanel>
+                            <TextBlock Text="Video: local file played fullscreen in VLC" FontWeight="SemiBold" Margin="0,6,0,0"/>
+                            <DockPanel><Button Content="Browse…" Command="{Binding BrowseVideoCommand}"/><TextBox Text="{Binding VideoPath, UpdateSourceTrigger=PropertyChanged}" Margin="4" IsReadOnly="True"/></DockPanel>
+                            <CheckBox Content="Stop/Home closes the VLC video" IsChecked="{Binding StopVideoOnHome}" Margin="5"/>
+                            <TextBlock Text="Calls: select Zoom or SIP independently" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                            <DockPanel Margin="4"><TextBox Text="{Binding AdrianDisplayName, UpdateSourceTrigger=PropertyChanged}" Width="100" ToolTip="Name shown on call button"/><ComboBox Width="80" SelectedValue="{Binding AdrianCallMethod}" SelectedValuePath="Content"><ComboBoxItem Content="None"/><ComboBoxItem Content="Zoom"/><ComboBoxItem Content="SIP"/></ComboBox><TextBox Text="{Binding AdrianCallTarget, UpdateSourceTrigger=PropertyChanged}" Margin="4" ToolTip="Zoom link or sip:user@example.com"/></DockPanel>
+                            <DockPanel Margin="4"><Button Content="Choose photo…" Command="{Binding BrowseAdrianPhotoCommand}"/><TextBox Text="{Binding AdrianPhotoPath}" IsReadOnly="True" Margin="4" ToolTip="Photo shown during calls"/></DockPanel>
+                            <DockPanel Margin="4"><TextBox Text="{Binding YvonneDisplayName, UpdateSourceTrigger=PropertyChanged}" Width="100" ToolTip="Name shown on call button"/><ComboBox Width="80" SelectedValue="{Binding YvonneCallMethod}" SelectedValuePath="Content"><ComboBoxItem Content="None"/><ComboBoxItem Content="Zoom"/><ComboBoxItem Content="SIP"/></ComboBox><TextBox Text="{Binding YvonneCallTarget, UpdateSourceTrigger=PropertyChanged}" Margin="4" ToolTip="Zoom link or sip:user@example.com"/></DockPanel>
+                            <DockPanel Margin="4"><Button Content="Choose photo…" Command="{Binding BrowseYvonnePhotoCommand}"/><TextBox Text="{Binding YvonnePhotoPath}" IsReadOnly="True" Margin="4" ToolTip="Photo shown during calls"/></DockPanel>
+                            <TextBlock Text="Call quiet hours" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                            <StackPanel Orientation="Horizontal" Margin="4">
+                                <CheckBox Content="Block incoming and outgoing calls" IsChecked="{Binding CallQuietHoursEnabled}" VerticalAlignment="Center"/>
+                                <TextBlock Text="from" Margin="12,0,4,0"/><TextBox Text="{Binding CallQuietFrom, UpdateSourceTrigger=PropertyChanged}" Width="58"/>
+                                <TextBlock Text="until" Margin="12,0,4,0"/><TextBox Text="{Binding CallQuietUntil, UpdateSourceTrigger=PropertyChanged}" Width="58"/>
+                            </StackPanel>
+                            <TextBlock Text="Uses local 24-hour time and may cross midnight. Incoming calls are declined automatically." Foreground="#52606D" TextWrapping="Wrap"/>
+                            <TextBlock Text="MicroSIP is recommended; Dementia Computer Buttons can call and hang up through its command line." Foreground="#52606D" TextWrapping="Wrap"/>
+                            <Button Content="Connect MicroSIP incoming calls" Command="{Binding ConfigureMicroSipCommand}" HorizontalAlignment="Left" ToolTip="Configures MicroSIP callbacks; restart MicroSIP afterwards."/>
+                            <TextBlock Text="Audio output switching" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                            <DockPanel Margin="4"><TextBlock Text="Speakers" Width="100"/><ComboBox ItemsSource="{Binding AudioOutputDevices}" DisplayMemberPath="Name" SelectedValuePath="Id" SelectedValue="{Binding SelectedSpeakerDeviceId}" MinWidth="290"/></DockPanel>
+                            <DockPanel Margin="4"><TextBlock Text="Headphones" Width="100"/><ComboBox ItemsSource="{Binding AudioOutputDevices}" DisplayMemberPath="Name" SelectedValuePath="Id" SelectedValue="{Binding SelectedHeadphoneDeviceId}" MinWidth="290"/></DockPanel>
+                            <DockPanel Margin="4"><TextBlock Text="Speaker mic" Width="100"/><ComboBox ItemsSource="{Binding AudioInputDevices}" DisplayMemberPath="Name" SelectedValuePath="Id" SelectedValue="{Binding SelectedSpeakerMicrophoneId}" MinWidth="290"/></DockPanel>
+                            <DockPanel Margin="4"><TextBlock Text="Headphone mic" Width="100"/><ComboBox ItemsSource="{Binding AudioInputDevices}" DisplayMemberPath="Name" SelectedValuePath="Id" SelectedValue="{Binding SelectedHeadphoneMicrophoneId}" MinWidth="290"/></DockPanel>
+                            <Button Content="Refresh audio devices" Command="{Binding RefreshAudioDevicesCommand}" HorizontalAlignment="Left"/>
+                            <TextBlock Text="The button switches output and microphone together. Headphone light: ON for the headphone profile; OFF for the speaker profile." Foreground="#52606D" TextWrapping="Wrap"/>
+                            <TextBlock Text="Screen schedule" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                            <StackPanel Orientation="Horizontal" Margin="4">
+                                <CheckBox Content="Black out display" IsChecked="{Binding DisplayScheduleEnabled}" VerticalAlignment="Center"/>
+                                <TextBlock Text="from" Margin="12,0,4,0"/><TextBox Text="{Binding BlackoutFrom, UpdateSourceTrigger=PropertyChanged}" Width="58"/>
+                                <TextBlock Text="until" Margin="12,0,4,0"/><TextBox Text="{Binding ResumeAt, UpdateSourceTrigger=PropertyChanged}" Width="58"/>
+                            </StackPanel>
+                            <TextBlock Text="Use 24-hour times (HH:mm). Calls temporarily wake the display." Foreground="#52606D"/>
+                            <CheckBox Content="Start Dementia Computer Buttons automatically after Windows sign-in" IsChecked="{Binding StartWithWindows}" Margin="5"/>
+                            <Button Content="Save console settings" Command="{Binding SaveContentCommand}" HorizontalAlignment="Left"/>
+                        </StackPanel>
+                    </GroupBox>
+
+                    <GroupBox Header="Required applications">
+                        <StackPanel>
+                            <TextBlock Text="The console checks these known applications. Install uses the trusted Windows Package Manager source." Foreground="#52606D" TextWrapping="Wrap"/>
+                            <ItemsControl ItemsSource="{Binding Applications}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="2">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="130"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Detail}"/>
+                                            <Button Grid.Column="2" Content="Install" IsEnabled="{Binding CanInstall}" Command="{Binding DataContext.InstallApplicationCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Key}"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Button Content="Check again" Command="{Binding RefreshApplicationsCommand}" HorizontalAlignment="Left"/>
+                        </StackPanel>
+                    </GroupBox>
+
+                    <GroupBox Header="Arduino connection">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="145"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="Detected port"/><TextBlock Grid.Column="1" Text="{Binding Port}" FontWeight="Bold"/>
+                            <TextBlock Grid.Row="1" Text="Firmware"/><TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Firmware}"/>
+                            <TextBlock Grid.Row="2" Text="Protocol"/><TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Protocol}"/>
+                            <TextBlock Grid.Row="3" Text="Controller uptime"/><TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Uptime}"/>
+                            <TextBlock Grid.Row="4" Text="Last heartbeat"/><TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding Heartbeat}"/>
+                            <TextBlock Grid.Row="5" Text="Communication errors"/><TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding CommunicationErrors}"/>
+                            <TextBlock Grid.Row="6" Text="Last message"/><TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding LastMessage}" TextWrapping="Wrap"/>
+                        </Grid>
+                    </GroupBox>
+
+                    <GroupBox Header="Live inputs">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                            <TextBlock Text="Ambient light (raw)"/><TextBlock Grid.Column="1" Text="{Binding AmbientLight}"/>
+                            <TextBlock Grid.Row="1" Text="Microphone level (smoothed)"/><TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Microphone}"/>
+                        </Grid>
+                    </GroupBox>
+
+                    <GroupBox Header="Windows system volume">
+                        <StackPanel>
+                            <TextBlock Text="{Binding VolumePercent, StringFormat={}{0:0}%}" FontSize="28" HorizontalAlignment="Center"/>
+                            <ProgressBar Value="{Binding VolumePercent, Mode=OneWay}" Maximum="100" Height="18" Margin="5"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Button Content="Volume −" Command="{Binding VolumeDownCommand}"/>
+                                <Button Content="Volume +" Command="{Binding VolumeUpCommand}"/>
+                                <Button Content="Mute" Command="{Binding MuteCommand}"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding Muted, StringFormat=Mute active: {0}}" HorizontalAlignment="Center"/>
+                            <TextBlock Text="{Binding SystemState, StringFormat=Application state: {0}}" HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </GroupBox>
+
+                    <GroupBox Header="Activity history">
+                        <StackPanel>
+                            <TextBlock Text="A plain-text daily history records button presses, actions, and whether Video, YouTube, Spotify or calls are active." TextWrapping="Wrap" Foreground="#52606D"/>
+                            <Button Content="Open activity log folder" Command="{Binding OpenActivityLogCommand}" HorizontalAlignment="Left"/>
+                        </StackPanel>
+                    </GroupBox>
+
+                    <GroupBox Header="Application updates">
+                        <StackPanel>
+                            <TextBlock Text="Updates are checked against verified GitHub release assets." Foreground="#52606D" TextWrapping="Wrap"/>
+                            <TextBlock Text="{Binding UpdateStatus}" FontWeight="SemiBold" Margin="4"/>
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="Check for updates" Command="{Binding CheckForUpdatesCommand}"/>
+                                <Button Content="Install update" Command="{Binding InstallUpdateCommand}" IsEnabled="{Binding CanInstallUpdate}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </GroupBox>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1">
+                    <GroupBox Header="Addressable RGB LEDs (0–255)">
+                        <StackPanel>
+                            <TextBlock Text="RGB LED 1" FontWeight="Bold"/>
+                            <WrapPanel><TextBlock Text="R"/><Slider Width="100" Maximum="255" Value="{Binding Rgb1Red}"/><TextBlock Text="G"/><Slider Width="100" Maximum="255" Value="{Binding Rgb1Green}"/><TextBlock Text="B"/><Slider Width="100" Maximum="255" Value="{Binding Rgb1Blue}"/><Button Content="Set" Command="{Binding SetRgb1Command}"/></WrapPanel>
+                            <TextBlock Text="RGB LED 2" FontWeight="Bold" Margin="0,8,0,0"/>
+                            <WrapPanel><TextBlock Text="R"/><Slider Width="100" Maximum="255" Value="{Binding Rgb2Red}"/><TextBlock Text="G"/><Slider Width="100" Maximum="255" Value="{Binding Rgb2Green}"/><TextBlock Text="B"/><Slider Width="100" Maximum="255" Value="{Binding Rgb2Blue}"/><Button Content="Set" Command="{Binding SetRgb2Command}"/></WrapPanel>
+                        </StackPanel>
+                    </GroupBox>
+
+                    <GroupBox Header="16×8 matrix and buzzer">
+                        <StackPanel>
+                            <WrapPanel><Button Content="Clear" Command="{Binding MatrixClearCommand}"/><Button Content="Test pattern" Command="{Binding MatrixPatternCommand}"/><Button Content="OK icon" Command="{Binding MatrixOkCommand}"/><Button Content="X icon" Command="{Binding MatrixXCommand}"/></WrapPanel>
+                            <WrapPanel><TextBox Text="{Binding MatrixText, UpdateSourceTrigger=PropertyChanged}" Width="90" MaxLength="2" Margin="4"/><Button Content="Show text" Command="{Binding MatrixTextCommand}"/><Button Content="Short buzzer test" Command="{Binding BuzzerCommand}"/></WrapPanel>
+                        </StackPanel>
+                    </GroupBox>
+
+                    <GroupBox Header="Direct panel: 8 buttons / 6 on-off LEDs">
+                        <StackPanel>
+                            <TextBlock Text="Direct Arduino pins; no expander or LED-driver chip required." Foreground="#52606D"/>
+                            <TextBlock Text="{Binding PanelHardware}" FontWeight="SemiBold"/>
+                            <ItemsControl ItemsSource="{Binding PanelButtons}">
+                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate><DataTemplate><Border BorderBrush="#CCD3DA" BorderThickness="1" CornerRadius="3" Margin="2" Padding="4"><StackPanel Width="92"><TextBlock Text="{Binding Name}" FontWeight="SemiBold"/><TextBlock Text="{Binding State}"/></StackPanel></Border></DataTemplate></ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <ItemsControl ItemsSource="{Binding PanelLeds}" Margin="0,6,0,0">
+                                <ItemsControl.ItemTemplate><DataTemplate><DockPanel><TextBlock Text="{Binding Name}" Width="130"/><Button Content="On" Command="{Binding OnCommand}"/><Button Content="Off" Command="{Binding OffCommand}"/></DockPanel></DataTemplate></ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Button Content="All panel LEDs off" Command="{Binding PanelAllOffCommand}" HorizontalAlignment="Left"/>
+                            <DockPanel Margin="4"><TextBlock Text="Overall brightness" Width="130"/><Slider Width="180" Minimum="0" Maximum="100" TickFrequency="5" Value="{Binding PanelBrightness}"/><Button Content="Set" Command="{Binding SetPanelBrightnessCommand}"/></DockPanel>
+                            <TextBlock Text="The two call buttons intentionally have no LED channels." Foreground="#52606D"/>
+                        </StackPanel>
+                    </GroupBox>
+
+                    <GroupBox Header="Hardware self-test">
+                        <StackPanel>
+                            <Button Content="RUN HARDWARE SELF TEST" Command="{Binding RunSelfTestCommand}" Background="#1769AA" Foreground="White" FontWeight="Bold" HorizontalAlignment="Stretch"/>
+                            <DataGrid ItemsSource="{Binding SelfTestResults}" AutoGenerateColumns="False" IsReadOnly="True" Height="220" Margin="4">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Item" Binding="{Binding Item}" Width="130"/>
+                                    <DataGridTextColumn Header="Result" Binding="{Binding Status}" Width="70"/>
+                                    <DataGridTextColumn Header="Detail" Binding="{Binding Detail}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </StackPanel>
+                    </GroupBox>
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+        <TextBlock Grid.Row="2" Margin="8" Foreground="#52606D" Text="The application discovers the controller by handshake; displayed COM numbers are never stored as identity."/>
+    </Grid>
+</Window>
