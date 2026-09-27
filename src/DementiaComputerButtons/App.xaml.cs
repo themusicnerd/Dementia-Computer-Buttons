@@ -16,6 +16,7 @@ public partial class App : WpfApplication
 {
     private IHost? _host;
     private Forms.NotifyIcon? _trayIcon;
+    private System.Drawing.Icon? _applicationIcon;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -108,9 +109,12 @@ public partial class App : WpfApplication
         {
             Dispatcher.Invoke(window.Close);
         });
+        var executablePath = Environment.ProcessPath;
+        if (!string.IsNullOrWhiteSpace(executablePath))
+            _applicationIcon = System.Drawing.Icon.ExtractAssociatedIcon(executablePath);
         _trayIcon = new Forms.NotifyIcon
         {
-            Icon = System.Drawing.SystemIcons.Application,
+            Icon = _applicationIcon ?? System.Drawing.SystemIcons.Application,
             Text = "Dementia Computer Buttons",
             Visible = true,
             ContextMenuStrip = menu
@@ -170,6 +174,7 @@ public partial class App : WpfApplication
         services.AddSingleton<IApplicationManagerService, ApplicationManagerService>();
         services.AddSingleton<CallEventBridge>();
         services.AddSingleton<DisplayScheduleService>();
+        services.AddSingleton<IDisplayScheduleService>(provider => provider.GetRequiredService<DisplayScheduleService>());
         services.AddSingleton<IIRService, IRService>();
         services.AddSingleton<PanelLightingService>();
         services.AddSingleton<IUserPromptService, UserPromptService>();
@@ -188,6 +193,7 @@ public partial class App : WpfApplication
             _trayIcon.Visible = false;
             _trayIcon.Dispose();
         }
+        _applicationIcon?.Dispose();
         if (_host is not null)
         {
             await _host.Services.GetRequiredService<IBrowserService>().CloseManagedContentAsync();

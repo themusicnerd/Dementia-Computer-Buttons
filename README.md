@@ -75,6 +75,12 @@ The setup page selects Edge or Chrome for both YouTube and Spotify. It also
 provides optional contact photos, configurable call names, speaker/headphone
 audio profiles, and a display blackout schedule such as 22:00–07:00. Calls wake
 the blacked-out display temporarily and take priority over managed media.
+During a scheduled blackout, any keyboard key or mouse click temporarily wakes
+the display. The physical Stop/Home button re-arms the schedule and blacks the
+screen again immediately when the current time is still inside the set period.
+While the screen is black, the six illuminated panel buttons use the
+controller's lowest non-zero PWM level. Waking the screen restores the configured
+panel brightness.
 
 Optional call quiet hours can block both incoming and outgoing calls during a
 daily local-time range, including ranges across midnight such as 22:00–07:00.
@@ -118,7 +124,7 @@ Create the self-contained application and Windows Installer package:
 ```powershell
 .\tools\Publish-DadConsole.ps1
 .\tools\Build-Msi.ps1
-msiexec.exe /i .\dist\DementiaComputerButtons-0.1.0-x64.msi
+msiexec.exe /i .\dist\DementiaComputerButtons-0.1.1-x64.msi
 ```
 
 The MSI is self-contained and creates an all-users Start Menu shortcut. The

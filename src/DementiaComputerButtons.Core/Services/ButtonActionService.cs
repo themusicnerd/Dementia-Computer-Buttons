@@ -13,7 +13,8 @@ public sealed class ButtonActionService(
     ICallService calls,
     IOnScreenDisplayService osd,
     ILoggingService logging,
-    IWindowsShellService? windowsShell = null) : IButtonActionService
+    IWindowsShellService? windowsShell = null,
+    IDisplayScheduleService? displaySchedule = null) : IButtonActionService
 {
     private readonly HashSet<string> _pendingShortPresses = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _consumedCallButtons = new(StringComparer.OrdinalIgnoreCase);
@@ -106,6 +107,7 @@ public sealed class ButtonActionService(
                 await StopActiveContentAsync(cancellationToken).ConfigureAwait(false);
                 await audioRouting.RestoreHomeRoutingAsync(cancellationToken).ConfigureAwait(false);
                 state.ReturnHome($"button:{buttonEvent.Button}");
+                displaySchedule?.RearmBlackout();
                 break;
             case "WATCH_TV":
                 osd.ShowMessage("OPENING YOUTUBE");

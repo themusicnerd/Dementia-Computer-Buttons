@@ -98,6 +98,12 @@ public interface IUpdateService
     Task<UpdateRelease?> CheckAsync(CancellationToken cancellationToken = default);
     Task DownloadAndInstallAsync(UpdateRelease release, CancellationToken cancellationToken = default);
 }
+public interface IDisplayScheduleService
+{
+    bool IsBlackoutActive { get; }
+    event EventHandler<bool>? BlackoutStateChanged;
+    void RearmBlackout();
+}
 public interface IApplicationManagerService
 {
     IReadOnlyList<ManagedApplication> Scan();

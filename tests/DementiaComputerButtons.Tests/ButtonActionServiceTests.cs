@@ -200,4 +200,17 @@ public sealed class ButtonActionServiceTests
 
         Assert.Equal(1, shell.CloseCount);
     }
+
+    [Fact]
+    public async Task StopRearmsTheDisplayBlackoutSchedule()
+    {
+        var display = new TestDisplaySchedule();
+        var service = new ButtonActionService(new TestVolume(), new TestConfiguration(new AppConfiguration()),
+            new SystemStateService(new TestLog()), new TestAudioRouting(), new TestVlc(), new TestBrowser(),
+            new TestCalls(), new TestOsd(), new TestLog(), null, display);
+
+        await service.HandleAsync(new ButtonEvent("PANEL_7", "DOWN", 1));
+
+        Assert.Equal(1, display.RearmCount);
+    }
 }

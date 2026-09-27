@@ -113,3 +113,16 @@ internal sealed class TestWindowsShell : IWindowsShellService
     public int CloseCount { get; private set; }
     public bool CloseStartMenuIfOpen() { CloseCount++; return true; }
 }
+
+internal sealed class TestDisplaySchedule : IDisplayScheduleService
+{
+    public int RearmCount { get; private set; }
+    public bool IsBlackoutActive { get; set; }
+    public event EventHandler<bool>? BlackoutStateChanged;
+    public void RearmBlackout() => RearmCount++;
+    public void SetBlackout(bool active)
+    {
+        IsBlackoutActive = active;
+        BlackoutStateChanged?.Invoke(this, active);
+    }
+}

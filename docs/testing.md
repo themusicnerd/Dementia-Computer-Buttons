@@ -126,3 +126,13 @@ has SHA-256
 `B1E7351C3372A90D0F9CDB827A71E96AAC59153884A5D879E78E742D3D68871C`.
 GitHub release tag parsing, update configuration, and checksum-gated update
 selection are covered by the additional automated tests.
+
+The 0.1.1 revision embeds the button-grid artwork as the executable and WPF
+window icon and explicitly uses the executable icon for the notification area.
+Scheduled blackout state now also selects the lowest non-zero panel-light PWM
+level and restores configured brightness on keyboard/mouse wake. A live
+all-day-schedule test against the connected controller logged 1% when blackout
+became active, then 36% immediately after a mouse click woke the screen. The
+user configuration was restored byte-for-byte after the test. The Release build
+passed 48/48 automated tests. The final 57,499,648-byte 0.1.1 MSI has SHA-256
+`FCDBC27D40CF89DB130D9BC60790490765104AFFEC10100B329BF17EA7D514D3`.

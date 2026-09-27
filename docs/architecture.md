@@ -55,6 +55,15 @@ and incoming callbacks. Blocked incoming calls are declined before call state
 or panel-light state is published. Stop/Home uses `IWindowsShellService` to send
 Escape only when a known Windows Start/Search host owns the foreground window.
 
+`DisplayScheduleService` owns a full-screen black WPF window during configured
+hours. The blackout window captures a keyboard key or mouse click as an explicit
+temporary wake request. That wake is held until the period ends or Stop/Home
+calls `IDisplayScheduleService.RearmBlackout`; saved schedule configuration is
+never changed by either action. Its blackout-state event also drives
+`PanelLightingService`: an active blackout selects the lowest non-zero firmware
+PWM level, while wake, calls and the end of the scheduled period restore the
+operator's configured brightness.
+
 ## Configuration and personal data
 
 `appsettings.json` is human-readable and contains only non-personal defaults.

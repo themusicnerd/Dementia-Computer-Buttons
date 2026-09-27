@@ -12,6 +12,7 @@
     <None Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <Resource Include="Assets\DementiaComputerButtons.ico" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -21,7 +22,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
-    <Version>0.1.0</Version>
+    <ApplicationIcon>Assets\DementiaComputerButtons.ico</ApplicationIcon>
+    <Version>0.1.1</Version>
   </PropertyGroup>
 
 </Project>

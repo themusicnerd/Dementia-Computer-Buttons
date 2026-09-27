@@ -8,11 +8,13 @@ public sealed class PanelLightingService(
     ISystemStateService state,
     IAudioRoutingService audio,
     ICallService calls,
+    IDisplayScheduleService displaySchedule,
     IConfigurationService configuration,
     ILoggingService logging)
 {
     private readonly SemaphoreSlim _sync = new(1, 1);
     private bool _panelOnline;
+    private byte? _lastBrightness;
     private CancellationTokenSource? _ringing;
 
     public void Start()
@@ -21,6 +23,7 @@ public sealed class PanelLightingService(
         state.StateChanged += (_, _) => _ = SynchronizeAsync();
         audio.SpeakersMutedChanged += (_, _) => _ = SynchronizeAsync();
         calls.StatusChanged += (_, snapshot) => OnCallStatusChanged(snapshot);
+        displaySchedule.BlackoutStateChanged += (_, _) => _ = SynchronizeAsync();
         OnConnectionChanged(this, arduino.Connection);
     }
 
@@ -76,7 +79,15 @@ public sealed class PanelLightingService(
         await _sync.WaitAsync().ConfigureAwait(false);
         try
         {
-            await arduino.SendCommandAsync($"PANEL BRIGHTNESS {configuration.Current.Lighting.PanelBrightnessPercent}").ConfigureAwait(false);
+            var configuredBrightness = configuration.Current.Lighting.PanelBrightnessPercent;
+            // One percent maps to the lowest non-zero level in the controller's 16-step software PWM.
+            var brightness = displaySchedule.IsBlackoutActive && configuredBrightness > 0 ? (byte)1 : configuredBrightness;
+            await arduino.SendCommandAsync($"PANEL BRIGHTNESS {brightness}").ConfigureAwait(false);
+            if (_lastBrightness != brightness)
+            {
+                _lastBrightness = brightness;
+                logging.Information("panel_brightness", $"Panel brightness set to {brightness}% (blackout={displaySchedule.IsBlackoutActive})");
+            }
             var states = new[]
             {
                 true, true,
