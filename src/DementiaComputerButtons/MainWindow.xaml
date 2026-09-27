@@ -33,12 +33,12 @@
                             <Button Background="White" Foreground="#17202A" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_1" AutomationProperties.Name="Volume down"><StackPanel><TextBlock Text="&#x2212;" FontSize="30" HorizontalAlignment="Center"/><TextBlock Text="Volume down"/></StackPanel></Button>
                             <Button Background="White" Foreground="#17202A" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_8" AutomationProperties.Name="Mute speakers"><StackPanel><TextBlock Text="&#x1F507;" FontFamily="Segoe UI Emoji" FontSize="23" HorizontalAlignment="Center"/><TextBlock Text="Mute speakers"/></StackPanel></Button>
                             <Button Background="White" Foreground="#17202A" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_2" AutomationProperties.Name="Volume up"><StackPanel><TextBlock Text="+" FontSize="30" HorizontalAlignment="Center"/><TextBlock Text="Volume up"/></StackPanel></Button>
-                            <Button Background="#FBC02D" Foreground="#17202A" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_6" AutomationProperties.Name="Play video"><StackPanel><TextBlock Text="&#x25B6;" FontSize="25" HorizontalAlignment="Center"/><TextBlock Text="Video"/></StackPanel></Button>
+                            <Button Background="#1976D2" Foreground="White" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_6" AutomationProperties.Name="Play video"><StackPanel><TextBlock Text="&#x25B6;" FontSize="25" HorizontalAlignment="Center"/><TextBlock Text="Video"/></StackPanel></Button>
                             <Border Background="Transparent" Width="100" Height="74"/>
-                            <Button Background="#FBC02D" Foreground="#17202A" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_5" AutomationProperties.Name="Watch TV" ToolTip="Short press: TV. Hold physical button: Spotify."><StackPanel><TextBlock Text="TV" FontSize="23" FontWeight="Bold" HorizontalAlignment="Center"/><TextBlock Text="Watch TV"/></StackPanel></Button>
-                            <Button Background="#1976D2" Foreground="White" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_4" AutomationProperties.Name="Call contact two"><StackPanel><TextBlock Text="2" FontSize="25" FontWeight="Bold" HorizontalAlignment="Center"/><TextBlock Text="{Binding YvonneDisplayName}"/></StackPanel></Button>
+                            <Button Background="#1976D2" Foreground="White" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_5" AutomationProperties.Name="Watch TV" ToolTip="Short press: TV. Hold physical button: Spotify."><StackPanel><TextBlock Text="TV" FontSize="23" FontWeight="Bold" HorizontalAlignment="Center"/><TextBlock Text="Watch TV"/></StackPanel></Button>
+                            <Button Background="#FBC02D" Foreground="#17202A" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_4" AutomationProperties.Name="Call contact two"><StackPanel><TextBlock Text="2" FontSize="25" FontWeight="Bold" HorizontalAlignment="Center"/><TextBlock Text="{Binding YvonneDisplayName}"/></StackPanel></Button>
                             <Button Background="#D32F2F" Foreground="White" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_7" AutomationProperties.Name="Stop and return home"><StackPanel><TextBlock Text="&#x25A0;" FontSize="25" HorizontalAlignment="Center"/><TextBlock Text="Stop / Home"/></StackPanel></Button>
-                            <Button Background="#1976D2" Foreground="White" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_3" AutomationProperties.Name="Call contact one"><StackPanel><TextBlock Text="1" FontSize="25" FontWeight="Bold" HorizontalAlignment="Center"/><TextBlock Text="{Binding AdrianDisplayName}"/></StackPanel></Button>
+                            <Button Background="#FBC02D" Foreground="#17202A" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_3" AutomationProperties.Name="Call contact one"><StackPanel><TextBlock Text="1" FontSize="25" FontWeight="Bold" HorizontalAlignment="Center"/><TextBlock Text="{Binding AdrianDisplayName}"/></StackPanel></Button>
                         </UniformGrid>
                     </GroupBox>
 
@@ -79,7 +79,46 @@
                                 <TextBlock Text="from" Margin="12,0,4,0"/><TextBox Text="{Binding BlackoutFrom, UpdateSourceTrigger=PropertyChanged}" Width="58"/>
                                 <TextBlock Text="until" Margin="12,0,4,0"/><TextBox Text="{Binding ResumeAt, UpdateSourceTrigger=PropertyChanged}" Width="58"/>
                             </StackPanel>
-                            <TextBlock Text="Use 24-hour times (HH:mm). Calls temporarily wake the display; blackout uses the lowest button-light brightness. Hold Stop/Home for 1.5 seconds to black out immediately." Foreground="#52606D" TextWrapping="Wrap"/>
+                            <CheckBox Content="Show day/date clock (clear for full blackout)" IsChecked="{Binding ShowBlackoutClock}" Margin="5,0,5,4"/>
+                            <WrapPanel Margin="4,0">
+                                <TextBlock Text="Clock style" Width="85"/>
+                                <ComboBox Width="110" SelectedValue="{Binding BlackoutClockStyle}" SelectedValuePath="Content">
+                                    <ComboBoxItem Content="Digital"/><ComboBoxItem Content="Analogue"/>
+                                </ComboBox>
+                                <CheckBox Content="24-hour time" IsChecked="{Binding Use24HourBlackoutClock}" Margin="12,4,4,4"/>
+                            </WrapPanel>
+                            <DockPanel Margin="4,2">
+                                <TextBlock Text="Date format" Width="85"/>
+                                <ComboBox Width="220" IsEditable="True" Text="{Binding BlackoutDateFormat, UpdateSourceTrigger=PropertyChanged}">
+                                    <ComboBoxItem Content="dddd, dd/MM/yyyy"/>
+                                    <ComboBoxItem Content="dddd, MM/dd/yyyy"/>
+                                    <ComboBoxItem Content="dddd, d MMMM yyyy"/>
+                                    <ComboBoxItem Content="dddd, yyyy-MM-dd"/>
+                                </ComboBox>
+                            </DockPanel>
+                            <WrapPanel Margin="4,2">
+                                <TextBlock Text="Clock colour" Width="85"/>
+                                <TextBox Text="{Binding BlackoutClockColor, UpdateSourceTrigger=PropertyChanged}" Width="90" MaxLength="7"/>
+                                <Border Width="28" Height="22" Margin="6,0" CornerRadius="3" Background="{Binding BlackoutClockColor}" BorderBrush="#808080" BorderThickness="1"/>
+                                <Button Content="Choose..." Command="{Binding ChooseBlackoutClockColorCommand}" Padding="8,3"/>
+                            </WrapPanel>
+                            <DockPanel Margin="4,2">
+                                <TextBlock Text="Clock brightness" Width="110"/>
+                                <Slider Minimum="1" Maximum="100" Width="170" TickFrequency="5" Value="{Binding BlackoutClockBrightness}"/>
+                                <TextBlock Text="{Binding BlackoutClockBrightness, StringFormat={}{0:0}%}" Margin="8,0,0,0"/>
+                            </DockPanel>
+                            <DockPanel Margin="4,2">
+                                <TextBlock Text="Instruction" Width="85"/>
+                                <TextBox Text="{Binding BlackoutWakePrompt, UpdateSourceTrigger=PropertyChanged}" MaxLength="80" MinWidth="300"/>
+                            </DockPanel>
+                            <TextBlock Text="Use 24-hour times (HH:mm). Calls temporarily wake the display; blackout uses the lowest button-light brightness. Hold Stop/Home for the configured long-press time to black out immediately." Foreground="#52606D" TextWrapping="Wrap"/>
+                            <TextBlock Text="A keyboard key, mouse button or any physical console button wakes it. Mouse movement alone does not wake it." Foreground="#52606D" TextWrapping="Wrap"/>
+                            <DockPanel Margin="4,4">
+                                <TextBlock Text="Long press time" Width="110"/>
+                                <Slider Minimum="500" Maximum="10000" Width="190" TickFrequency="250" IsSnapToTickEnabled="True" Value="{Binding LongPressMilliseconds}"/>
+                                <TextBlock Text="{Binding LongPressMilliseconds, StringFormat={}{0:0} ms}" Margin="8,0,0,0"/>
+                            </DockPanel>
+                            <TextBlock Text="Applies to holding TV for Spotify and holding Stop/Home for blackout." Foreground="#52606D" TextWrapping="Wrap"/>
                             <CheckBox Content="Start Dementia Computer Buttons automatically after Windows sign-in" IsChecked="{Binding StartWithWindows}" Margin="5"/>
                             <WrapPanel>
                                 <Button Content="Save console settings" Command="{Binding SaveContentCommand}"/>

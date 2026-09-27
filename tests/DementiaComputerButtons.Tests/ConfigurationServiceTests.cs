@@ -131,4 +131,33 @@ public sealed class ConfigurationServiceTests
         }
         finally { File.Delete(path); }
     }
+
+    [Fact]
+    public async Task SavesBlackoutClockPreferences()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"dcb-clock-{Guid.NewGuid():N}.json");
+        try
+        {
+            var service = new ConfigurationService(path, new TestLog());
+            service.Current.DisplaySchedule.ShowClock = true;
+            service.Current.DisplaySchedule.ClockStyle = "Analogue";
+            service.Current.DisplaySchedule.Use24HourClock = true;
+            service.Current.DisplaySchedule.DateFormat = "dddd, dd/MM/yyyy";
+            service.Current.DisplaySchedule.ClockColor = "#44AAFF";
+            service.Current.DisplaySchedule.ClockBrightnessPercent = 40;
+            service.Current.DisplaySchedule.WakePromptText = "PRESS A BUTTON TO BEGIN";
+            await service.SaveAsync();
+
+            var reloaded = new ConfigurationService(path, new TestLog());
+            await reloaded.LoadAsync();
+
+            Assert.Equal("Analogue", reloaded.Current.DisplaySchedule.ClockStyle);
+            Assert.True(reloaded.Current.DisplaySchedule.Use24HourClock);
+            Assert.Equal("dddd, dd/MM/yyyy", reloaded.Current.DisplaySchedule.DateFormat);
+            Assert.Equal("#44AAFF", reloaded.Current.DisplaySchedule.ClockColor);
+            Assert.Equal(40, reloaded.Current.DisplaySchedule.ClockBrightnessPercent);
+            Assert.Equal("PRESS A BUTTON TO BEGIN", reloaded.Current.DisplaySchedule.WakePromptText);
+        }
+        finally { File.Delete(path); }
+    }
 }

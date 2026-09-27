@@ -79,6 +79,9 @@ public sealed class PanelLightingService(
         await _sync.WaitAsync().ConfigureAwait(false);
         try
         {
+            if (Version.TryParse(arduino.Connection.FirmwareVersion, out var firmwareVersion) &&
+                firmwareVersion >= new Version(0, 2, 2))
+                await arduino.SendCommandAsync($"PANEL LONGPRESS {configuration.Current.Controller.LongPressMilliseconds}").ConfigureAwait(false);
             var configuredBrightness = configuration.Current.Lighting.PanelBrightnessPercent;
             // One percent maps to the lowest non-zero level in the controller's 16-step software PWM.
             var brightness = displaySchedule.IsBlackoutActive && configuredBrightness > 0 ? (byte)1 : configuredBrightness;

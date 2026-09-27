@@ -22,13 +22,7 @@ public sealed class DisplayScheduleService(
     public void Start()
     {
         _timer.Tick += (_, _) => Evaluate();
-        blackout.UserWakeRequested += (_, _) => blackout.Dispatcher.Invoke(() =>
-        {
-            _manualBlackout = false;
-            _manuallyWoken = true;
-            SetBlackoutActive(false);
-            logging.Information("activity_display", "Scheduled screen blackout temporarily disabled by keyboard or mouse");
-        });
+        blackout.UserWakeRequested += (_, _) => WakeFromInput("keyboard or mouse button");
         calls.StatusChanged += (_, snapshot) => blackout.Dispatcher.Invoke(() =>
         {
             if (snapshot.Status is CallStatus.Incoming or CallStatus.Calling or CallStatus.Ringing or CallStatus.Connecting or CallStatus.Connected) SetBlackoutActive(false);
@@ -84,6 +78,14 @@ public sealed class DisplayScheduleService(
     {
         if (active)
         {
+            blackout.ConfigureClock(
+                configuration.Current.DisplaySchedule.ShowClock,
+                configuration.Current.DisplaySchedule.ClockStyle,
+                configuration.Current.DisplaySchedule.Use24HourClock,
+                configuration.Current.DisplaySchedule.DateFormat,
+                configuration.Current.DisplaySchedule.ClockColor,
+                configuration.Current.DisplaySchedule.ClockBrightnessPercent,
+                configuration.Current.DisplaySchedule.WakePromptText);
             if (!blackout.IsVisible) blackout.Show();
             blackout.Topmost = true;
             blackout.Activate();
@@ -114,6 +116,18 @@ public sealed class DisplayScheduleService(
             _manuallyWoken = false;
             logging.Information("activity_display", "Display blacked out by Stop/Home long press");
             EvaluateCore();
+        });
+    }
+
+    public void WakeFromInput(string source)
+    {
+        blackout.Dispatcher.Invoke(() =>
+        {
+            if (!_isBlackoutActive) return;
+            _manualBlackout = false;
+            _manuallyWoken = true;
+            SetBlackoutActive(false);
+            logging.Information("activity_display", $"Screen blackout temporarily disabled by {source}");
         });
     }
 }

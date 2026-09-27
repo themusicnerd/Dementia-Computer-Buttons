@@ -9,7 +9,7 @@ most 95 characters before LF. Keywords and symbolic values are uppercase.
 On boot the controller emits:
 
 ```text
-DCB/1 READY board=KS0501 fw=0.2.1
+DCB/1 READY board=KS0501 fw=0.2.2
 ```
 
 Windows must not identify the controller from a COM number. It sends:
@@ -21,7 +21,7 @@ HELLO DCB/1
 The controller replies:
 
 ```text
-HELLO DCB/1 KS0501 0.2.1 caps=RGB,MATRIX,BUZZ,BTN,PANEL,SENSORS ir=0 matrix=1 pb=1 pl=1
+HELLO DCB/1 KS0501 0.2.2 caps=RGB,MATRIX,BUZZ,BTN,PANEL,SENSORS ir=0 matrix=1 pb=1 pl=1
 ```
 
 `ir=0` truthfully means no IR subsystem is installed. `matrix=0` means the
@@ -71,6 +71,7 @@ CMD 16 PANEL LED 0 ON
 CMD 17 PANEL LED 5 OFF
 CMD 18 PANEL ALL OFF
 CMD 19 PANEL BRIGHTNESS 50
+CMD 20 PANEL LONGPRESS 2500
 ```
 
 RGB indices are zero-based (`0` and `1`); channels are 0–255. Matrix text is
@@ -85,6 +86,11 @@ lights are logically on.
 Matrix bars accept 0–100. Buzzer frequency is 100–5000 Hz and duration 1–250 ms,
 which prevents continuous host-commanded noise. Telemetry intervals are either
 `OFF` or 250–10000 ms.
+
+`PANEL LONGPRESS` sets the external panel's non-repeating-button hold threshold
+in milliseconds. Valid values are 500 through 10000. It takes effect immediately
+and remains active until reset; Windows reapplies the saved setting after every
+handshake.
 
 ## Events and telemetry
 
@@ -101,8 +107,9 @@ DATA 15 STATUS uptime=5100 matrix=1
 
 The volume buttons emit `REPEAT` after a 500 ms hold and then approximately every
 180 ms until `UP`. Their normal step is 5%; repeat steps default to 2%.
-Non-repeating buttons emit `LONG` after 1.5 seconds. The default Windows mapping
-defers TV until release and maps a TV long press to Spotify. The microphone
+Non-repeating buttons emit `LONG` after the configured threshold, which defaults
+to 1500 ms. The default Windows mapping defers TV until release and maps a TV
+long press to Spotify. The microphone
 field is a smoothed analogue sound-level value only; no audio is recorded.
 
 Handshake/status fields `pb=1` and `pl=1` mean the direct-pin button and LED

@@ -7,8 +7,8 @@ namespace DementiaComputerButtons.Infrastructure;
 
 public sealed class FirmwareUpdateService(IArduinoService arduino, ILoggingService logging) : IFirmwareUpdateService
 {
-    private const string BundledSha256 = "698F8D56EA55272F68A5BBBE168DFCD135213F198B5BAFE424E97F5994AF7EE3";
-    public string BundledVersion => "0.2.1";
+    private const string BundledSha256 = "5256B89FE2F499CAB809303861249A7387803F6FB6F43B30B774F68547F52209";
+    public string BundledVersion => "0.2.2";
     public bool IsToolAvailable => FindArduinoCli() is not null;
 
     public async Task UpdateControllerAsync(CancellationToken cancellationToken = default)

@@ -132,6 +132,11 @@ public sealed class ConfigurationService(string path, ILoggingService logging) :
             _warnings.Add("Unsupported controller protocol; using DCB/1.");
             configuration.Controller.Protocol = "DCB/1";
         }
+        if (configuration.Controller.LongPressMilliseconds is < 500 or > 10000)
+        {
+            _warnings.Add("Long-press time must be 500..10000 ms; using 1500.");
+            configuration.Controller.LongPressMilliseconds = 1500;
+        }
         if (string.IsNullOrWhiteSpace(configuration.Calls.Adrian.DisplayName)) configuration.Calls.Adrian.DisplayName = "Contact 1";
         if (string.IsNullOrWhiteSpace(configuration.Calls.Yvonne.DisplayName)) configuration.Calls.Yvonne.DisplayName = "Contact 2";
         if (!TimeOnly.TryParseExact(configuration.Calls.QuietHours.From, "HH:mm", out _))
@@ -153,6 +158,35 @@ public sealed class ConfigurationService(string path, ILoggingService logging) :
         {
             _warnings.Add("Display resume time is invalid; using 07:00.");
             configuration.DisplaySchedule.ResumeAt = "07:00";
+        }
+        if (configuration.DisplaySchedule.ClockStyle is not ("Digital" or "Analogue"))
+        {
+            _warnings.Add("Blackout clock style is invalid; using Digital.");
+            configuration.DisplaySchedule.ClockStyle = "Digital";
+        }
+        try { _ = DateTime.Now.ToString(configuration.DisplaySchedule.DateFormat); }
+        catch (FormatException)
+        {
+            _warnings.Add("Blackout date format is invalid; using Australian day/date format.");
+            configuration.DisplaySchedule.DateFormat = "dddd, dd/MM/yyyy";
+        }
+        var colour = configuration.DisplaySchedule.ClockColor;
+        if (colour is null || colour.Length != 7 || colour[0] != '#' ||
+            !int.TryParse(colour.AsSpan(1), System.Globalization.NumberStyles.HexNumber, null, out _))
+        {
+            _warnings.Add("Blackout clock colour is invalid; using soft white.");
+            configuration.DisplaySchedule.ClockColor = "#B8B8B8";
+        }
+        if (configuration.DisplaySchedule.ClockBrightnessPercent is < 1 or > 100)
+        {
+            _warnings.Add("Blackout clock brightness must be 1..100; using 65.");
+            configuration.DisplaySchedule.ClockBrightnessPercent = 65;
+        }
+        configuration.DisplaySchedule.WakePromptText ??= string.Empty;
+        if (configuration.DisplaySchedule.WakePromptText.Length > 80)
+        {
+            _warnings.Add("Blackout instruction text was shortened to 80 characters.");
+            configuration.DisplaySchedule.WakePromptText = configuration.DisplaySchedule.WakePromptText[..80];
         }
     }
 }

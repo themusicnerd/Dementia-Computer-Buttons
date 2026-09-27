@@ -120,9 +120,11 @@ internal sealed class TestDisplaySchedule : IDisplayScheduleService
 {
     public int RearmCount { get; private set; }
     public int BlackoutCount { get; private set; }
+    public int WakeCount { get; private set; }
     public bool IsBlackoutActive { get; set; }
     public event EventHandler<bool>? BlackoutStateChanged;
     public void BlackoutNow() => BlackoutCount++;
+    public void WakeFromInput(string source) => WakeCount++;
     public void RearmBlackout() => RearmCount++;
     public void SetBlackout(bool active)
     {

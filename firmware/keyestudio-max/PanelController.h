@@ -12,6 +12,7 @@ class PanelController {
   bool nextEvent(Event& event);
   bool setLed(uint8_t index, uint8_t value);
   bool setBrightness(uint8_t percent);
+  bool setLongPressMilliseconds(unsigned long milliseconds);
   void allLedsOff();
   bool buttonsAvailable() const { return true; }
   bool ledsAvailable() const { return true; }
@@ -32,4 +33,5 @@ class PanelController {
   unsigned long pressedAt_[8] = {};
   unsigned long lastSampleAt_ = 0;
   unsigned long lastPwmAtMicros_ = 0;
+  unsigned long longPressMilliseconds_ = 1500;
 };

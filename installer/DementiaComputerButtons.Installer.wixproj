@@ -1,6 +1,6 @@
 <Project Sdk="WixToolset.Sdk/5.0.2">
   <PropertyGroup>
-    <OutputName>DementiaComputerButtons-0.1.2-x64</OutputName>
+    <OutputName>DementiaComputerButtons-0.1.3-x64</OutputName>
     <Platform>x64</Platform>
     <InstallerPlatform>x64</InstallerPlatform>
     <PublishDir>$(MSBuildThisFileDirectory)..\dist\DementiaComputerButtons</PublishDir>

@@ -48,6 +48,13 @@ public sealed class StartupConfiguration
 public sealed class DisplayScheduleConfiguration
 {
     public bool Enabled { get; set; }
+    public bool ShowClock { get; set; } = true;
+    public string ClockStyle { get; set; } = "Digital";
+    public bool Use24HourClock { get; set; }
+    public string DateFormat { get; set; } = "dddd, dd/MM/yyyy";
+    public string ClockColor { get; set; } = "#B8B8B8";
+    public byte ClockBrightnessPercent { get; set; } = 65;
+    public string WakePromptText { get; set; } = "PRESS A BUTTON TO BEGIN";
     public string BlackoutFrom { get; set; } = "22:00";
     public string ResumeAt { get; set; } = "07:00";
 }
@@ -95,6 +102,7 @@ public sealed class ControllerConfiguration
     public int ReconnectDelayMs { get; set; } = 1000;
     public int HeartbeatIntervalMs { get; set; } = 1000;
     public int HeartbeatTimeoutMs { get; set; } = 4000;
+    public int LongPressMilliseconds { get; set; } = 1500;
 }
 
 public sealed class ContentConfiguration

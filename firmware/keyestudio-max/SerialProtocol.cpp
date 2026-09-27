@@ -9,7 +9,7 @@
 #include "PanelController.h"
 
 namespace {
-constexpr char kFirmwareVersion[] = "0.2.1";
+constexpr char kFirmwareVersion[] = "0.2.2";
 }
 
 SerialProtocol::SerialProtocol(OutputManager& outputs, MatrixDisplay& matrix, PanelController& panel)
@@ -145,6 +145,12 @@ void SerialProtocol::processCommand(char* save, unsigned long now) {
     } else if (strcmp(item, "BRIGHTNESS") == 0) {
       uint8_t percent;
       if (!parseByte(strtok_r(nullptr, " ", &save), percent) || !panel_.setBrightness(percent)) {
+        error(id, F("BAD_PANEL")); return;
+      }
+    } else if (strcmp(item, "LONGPRESS") == 0) {
+      unsigned long milliseconds;
+      if (!parseUnsigned(strtok_r(nullptr, " ", &save), 10000, milliseconds) ||
+          !panel_.setLongPressMilliseconds(milliseconds)) {
         error(id, F("BAD_PANEL")); return;
       }
     } else { error(id, F("BAD_PANEL")); return; }

@@ -105,6 +105,7 @@ public interface IDisplayScheduleService
     bool IsBlackoutActive { get; }
     event EventHandler<bool>? BlackoutStateChanged;
     void BlackoutNow();
+    void WakeFromInput(string source);
     void RearmBlackout();
 }
 public interface IApplicationManagerService

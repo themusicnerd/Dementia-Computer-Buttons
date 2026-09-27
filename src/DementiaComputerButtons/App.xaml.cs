@@ -49,6 +49,7 @@ public partial class App : WpfApplication
         var volumeOverlay = _host.Services.GetRequiredService<VolumeOverlayWindow>();
         var actions = _host.Services.GetRequiredService<IButtonActionService>();
         var logging = _host.Services.GetRequiredService<ILoggingService>();
+        var displaySchedule = _host.Services.GetRequiredService<DisplayScheduleService>();
         var calls = _host.Services.GetRequiredService<ICallService>();
         var vlc = _host.Services.GetRequiredService<IVlcService>();
         vlc.PlaybackEnded += (_, _) =>
@@ -76,8 +77,13 @@ public partial class App : WpfApplication
         };
         arduino.ButtonChanged += async (_, button) =>
         {
+            var wakeAfterAction = button.Action.Equals("DOWN", StringComparison.OrdinalIgnoreCase) && displaySchedule.IsBlackoutActive;
             try { await actions.HandleAsync(button); }
             catch (Exception exception) { logging.Error("button_action_failed", exception, button.Button); }
+            finally
+            {
+                if (wakeAfterAction) displaySchedule.WakeFromInput($"controller button {button.Button}");
+            }
         };
         var startupVolumeRead = true;
         volume.VolumeChanged += async (_, percent) =>
@@ -91,7 +97,7 @@ public partial class App : WpfApplication
         _host.Services.GetRequiredService<CallEventBridge>().Start();
         _host.Services.GetRequiredService<PanelLightingService>().Start();
         _ = _host.Services.GetRequiredService<CallStatusWindow>();
-        _host.Services.GetRequiredService<DisplayScheduleService>().Start();
+        displaySchedule.Start();
         volume.Refresh();
         startupVolumeRead = false;
         var window = _host.Services.GetRequiredService<MainWindow>();

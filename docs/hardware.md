@@ -60,6 +60,9 @@ the table above):
 | Video (D11) | gap | TV (D7) |
 | Contact 2 (D6) | Stop/Home (D12) | Contact 1 (D5) |
 
+The physical Video and TV buttons are blue. The two contact buttons are yellow.
+This colour order is cosmetic only and does not change their protocol mappings.
+
 Disconnect USB power while wiring. Connect one contact of each momentary switch
 to its input pin and the other contact to GND. Firmware uses `INPUT_PULLUP`, so
 no external pull-up is needed and a press reads LOW.

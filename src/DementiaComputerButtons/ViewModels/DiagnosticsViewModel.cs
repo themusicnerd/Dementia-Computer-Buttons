@@ -86,6 +86,13 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
     private string _adrianPhotoPath = string.Empty;
     private string _yvonnePhotoPath = string.Empty;
     private bool _displayScheduleEnabled;
+    private bool _showBlackoutClock = true;
+    private string _blackoutClockStyle = "Digital";
+    private bool _use24HourBlackoutClock;
+    private string _blackoutDateFormat = "dddd, dd/MM/yyyy";
+    private string _blackoutClockColor = "#B8B8B8";
+    private double _blackoutClockBrightness = 65;
+    private string _blackoutWakePrompt = "PRESS A BUTTON TO BEGIN";
     private string _blackoutFrom = "22:00";
     private string _resumeAt = "07:00";
     private bool _startWithWindows;
@@ -94,6 +101,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
     private UpdateRelease? _availableUpdate;
     private string _firmwareUpdateStatus = "Not checked";
     private double _panelBrightness = 100;
+    private double _longPressMilliseconds = 1500;
 
     public DiagnosticsViewModel(IArduinoService arduino, IVolumeService volume, ISystemStateService state, IButtonActionService actions,
         IConfigurationService configuration,
@@ -141,6 +149,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         SaveContentCommand = new AsyncRelayCommand(SaveContentAsync);
         ExportSettingsCommand = new AsyncRelayCommand(ExportSettingsAsync);
         ImportSettingsCommand = new AsyncRelayCommand(ImportSettingsAsync);
+        ChooseBlackoutClockColorCommand = new RelayCommand(_ => ChooseBlackoutClockColor());
         RefreshAudioDevicesCommand = new RelayCommand(_ => RefreshAudioDevices());
         RefreshApplicationsCommand = new RelayCommand(_ => RefreshApplications());
         InstallApplicationCommand = new AsyncParameterCommand(InstallApplicationAsync);
@@ -182,6 +191,13 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         CallQuietFrom = configuration.Current.Calls.QuietHours.From;
         CallQuietUntil = configuration.Current.Calls.QuietHours.Until;
         DisplayScheduleEnabled = configuration.Current.DisplaySchedule.Enabled;
+        ShowBlackoutClock = configuration.Current.DisplaySchedule.ShowClock;
+        BlackoutClockStyle = configuration.Current.DisplaySchedule.ClockStyle;
+        Use24HourBlackoutClock = configuration.Current.DisplaySchedule.Use24HourClock;
+        BlackoutDateFormat = configuration.Current.DisplaySchedule.DateFormat;
+        BlackoutClockColor = configuration.Current.DisplaySchedule.ClockColor;
+        BlackoutClockBrightness = configuration.Current.DisplaySchedule.ClockBrightnessPercent;
+        BlackoutWakePrompt = configuration.Current.DisplaySchedule.WakePromptText;
         BlackoutFrom = configuration.Current.DisplaySchedule.BlackoutFrom;
         ResumeAt = configuration.Current.DisplaySchedule.ResumeAt;
         StartWithWindows = configuration.Current.Startup.StartWithWindows || startup.IsEnabled;
@@ -195,6 +211,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         SelectedHeadphoneMicrophoneId = ResolveSavedInputDeviceId(configuration.Current.AudioRouting.HeadphoneMicrophoneId,
             configuration.Current.AudioRouting.HeadphoneMicrophoneName);
         PanelBrightness = configuration.Current.Lighting.PanelBrightnessPercent;
+        LongPressMilliseconds = configuration.Current.Controller.LongPressMilliseconds;
         RefreshApplications();
         UpdateStatus = $"Version {_updates.CurrentVersion.ToString(3)}";
         RefreshFirmwareUpdateStatus();
@@ -238,6 +255,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
     public ICommand SaveContentCommand { get; }
     public ICommand ExportSettingsCommand { get; }
     public ICommand ImportSettingsCommand { get; }
+    public ICommand ChooseBlackoutClockColorCommand { get; }
     public ICommand RefreshAudioDevicesCommand { get; }
     public ICommand RefreshApplicationsCommand { get; }
     public ICommand InstallApplicationCommand { get; }
@@ -280,6 +298,13 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
     public string CallQuietFrom { get => _callQuietFrom; set => Set(ref _callQuietFrom, value); }
     public string CallQuietUntil { get => _callQuietUntil; set => Set(ref _callQuietUntil, value); }
     public bool DisplayScheduleEnabled { get => _displayScheduleEnabled; set => Set(ref _displayScheduleEnabled, value); }
+    public bool ShowBlackoutClock { get => _showBlackoutClock; set => Set(ref _showBlackoutClock, value); }
+    public string BlackoutClockStyle { get => _blackoutClockStyle; set => Set(ref _blackoutClockStyle, value); }
+    public bool Use24HourBlackoutClock { get => _use24HourBlackoutClock; set => Set(ref _use24HourBlackoutClock, value); }
+    public string BlackoutDateFormat { get => _blackoutDateFormat; set => Set(ref _blackoutDateFormat, value); }
+    public string BlackoutClockColor { get => _blackoutClockColor; set => Set(ref _blackoutClockColor, value); }
+    public double BlackoutClockBrightness { get => _blackoutClockBrightness; set => Set(ref _blackoutClockBrightness, value); }
+    public string BlackoutWakePrompt { get => _blackoutWakePrompt; set => Set(ref _blackoutWakePrompt, value); }
     public string BlackoutFrom { get => _blackoutFrom; set => Set(ref _blackoutFrom, value); }
     public string ResumeAt { get => _resumeAt; set => Set(ref _resumeAt, value); }
     public bool StartWithWindows { get => _startWithWindows; set => Set(ref _startWithWindows, value); }
@@ -297,6 +322,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
     public double Rgb2Green { get; set; } = 180;
     public double Rgb2Blue { get; set; }
     public double PanelBrightness { get => _panelBrightness; set => Set(ref _panelBrightness, value); }
+    public double LongPressMilliseconds { get => _longPressMilliseconds; set => Set(ref _longPressMilliseconds, value); }
 
     private void OpenActivityLogFolder()
     {
@@ -401,6 +427,15 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         return dialog.ShowDialog() == true ? dialog.FileName : null;
     }
 
+    private void ChooseBlackoutClockColor()
+    {
+        using var dialog = new System.Windows.Forms.ColorDialog { FullOpen = true };
+        try { dialog.Color = System.Drawing.ColorTranslator.FromHtml(BlackoutClockColor); }
+        catch { dialog.Color = System.Drawing.Color.FromArgb(184, 184, 184); }
+        if (dialog.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
+        BlackoutClockColor = $"#{dialog.Color.R:X2}{dialog.Color.G:X2}{dialog.Color.B:X2}";
+    }
+
     private async Task SaveContentAsync()
     {
         try
@@ -426,14 +461,30 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
             if (!TimeOnly.TryParseExact(BlackoutFrom, "HH:mm", out _) || !TimeOnly.TryParseExact(ResumeAt, "HH:mm", out _))
                 throw new InvalidOperationException("Display times must use 24-hour HH:mm format, for example 22:00 and 07:00.");
             _configuration.Current.DisplaySchedule.Enabled = DisplayScheduleEnabled;
+            _configuration.Current.DisplaySchedule.ShowClock = ShowBlackoutClock;
+            _configuration.Current.DisplaySchedule.ClockStyle = BlackoutClockStyle;
+            _configuration.Current.DisplaySchedule.Use24HourClock = Use24HourBlackoutClock;
+            _configuration.Current.DisplaySchedule.DateFormat = BlackoutDateFormat.Trim();
+            _configuration.Current.DisplaySchedule.ClockColor = BlackoutClockColor;
+            _configuration.Current.DisplaySchedule.ClockBrightnessPercent = (byte)Math.Clamp(Math.Round(BlackoutClockBrightness), 1, 100);
+            _configuration.Current.DisplaySchedule.WakePromptText = BlackoutWakePrompt.Trim();
             _configuration.Current.DisplaySchedule.BlackoutFrom = BlackoutFrom;
             _configuration.Current.DisplaySchedule.ResumeAt = ResumeAt;
             _configuration.Current.Startup.StartWithWindows = StartWithWindows;
+            _configuration.Current.Controller.LongPressMilliseconds = (int)Math.Clamp(Math.Round(LongPressMilliseconds), 500, 10000);
             _startup.SetEnabled(StartWithWindows);
             SaveAudioDeviceSelection();
             await _configuration.SaveAsync();
             _displaySchedule.Evaluate();
-            OperationStatus = "Content and call settings saved";
+            if (_arduino.Connection.IsConnected && Version.TryParse(_arduino.Connection.FirmwareVersion, out var firmwareVersion) &&
+                firmwareVersion >= new Version(0, 2, 2))
+            {
+                await _arduino.SendCommandAsync($"PANEL LONGPRESS {_configuration.Current.Controller.LongPressMilliseconds}");
+                OperationStatus = "Console settings and controller long-press time saved";
+            }
+            else OperationStatus = _arduino.Connection.IsConnected
+                ? "Settings saved; update controller firmware to apply the long-press time"
+                : "Content and call settings saved";
         }
         catch (Exception exception)
         {
@@ -520,10 +571,18 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         CallQuietFrom = current.Calls.QuietHours.From;
         CallQuietUntil = current.Calls.QuietHours.Until;
         DisplayScheduleEnabled = current.DisplaySchedule.Enabled;
+        ShowBlackoutClock = current.DisplaySchedule.ShowClock;
+        BlackoutClockStyle = current.DisplaySchedule.ClockStyle;
+        Use24HourBlackoutClock = current.DisplaySchedule.Use24HourClock;
+        BlackoutDateFormat = current.DisplaySchedule.DateFormat;
+        BlackoutClockColor = current.DisplaySchedule.ClockColor;
+        BlackoutClockBrightness = current.DisplaySchedule.ClockBrightnessPercent;
+        BlackoutWakePrompt = current.DisplaySchedule.WakePromptText;
         BlackoutFrom = current.DisplaySchedule.BlackoutFrom;
         ResumeAt = current.DisplaySchedule.ResumeAt;
         StartWithWindows = current.Startup.StartWithWindows;
         PanelBrightness = current.Lighting.PanelBrightnessPercent;
+        LongPressMilliseconds = current.Controller.LongPressMilliseconds;
         RefreshAudioDevices();
         SelectedSpeakerDeviceId = ResolveSavedDeviceId(current.AudioRouting.SpeakerDeviceId, current.AudioRouting.SpeakerDeviceName);
         SelectedHeadphoneDeviceId = ResolveSavedDeviceId(current.AudioRouting.HeadphoneDeviceId, current.AudioRouting.HeadphoneDeviceName);

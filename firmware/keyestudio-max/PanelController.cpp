@@ -66,7 +66,7 @@ void PanelController::update(unsigned long now) {
       nextRepeatAt_[index] += Hardware::ButtonRepeatIntervalMs;
     }
     if (index >= 2 && !(stableMask_ & bit) && !(longSentMask_ & bit) &&
-        now - pressedAt_[index] >= Hardware::ButtonLongPressMs) {
+        now - pressedAt_[index] >= longPressMilliseconds_) {
       longSentMask_ |= bit;
       pendingLong_ |= bit;
     }
@@ -99,6 +99,12 @@ bool PanelController::setLed(uint8_t index, uint8_t value) {
 bool PanelController::setBrightness(uint8_t percent) {
   if (percent > 100) return false;
   brightnessLevel_ = percent == 0 ? 0 : static_cast<uint8_t>((percent * 16UL + 99UL) / 100UL);
+  return true;
+}
+
+bool PanelController::setLongPressMilliseconds(unsigned long milliseconds) {
+  if (milliseconds < 500 || milliseconds > 10000) return false;
+  longPressMilliseconds_ = milliseconds;
   return true;
 }
 

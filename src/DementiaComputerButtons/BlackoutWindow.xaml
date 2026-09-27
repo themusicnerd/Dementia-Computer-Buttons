@@ -4,5 +4,32 @@
         WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
         ShowActivated="True" Topmost="True" Background="Black" Cursor="None"
         Focusable="True">
-    <Grid Background="Black"/>
+    <Grid Background="Black">
+        <StackPanel x:Name="ClockPanel" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed">
+            <StackPanel x:Name="DigitalClockPanel" HorizontalAlignment="Center">
+                <TextBlock x:Name="ClockText" Foreground="#B8B8B8" FontSize="168" FontWeight="Light"
+                           FontFamily="Segoe UI" HorizontalAlignment="Center"/>
+            </StackPanel>
+            <StackPanel x:Name="AnalogueClockPanel" HorizontalAlignment="Center" Visibility="Collapsed">
+                <Canvas x:Name="AnalogueClock" Width="460" Height="460">
+                    <Ellipse Width="440" Height="440" Canvas.Left="10" Canvas.Top="10" Stroke="#777777" StrokeThickness="5"/>
+                    <TextBlock Text="12" Foreground="#A0A0A0" FontSize="34" Canvas.Left="209" Canvas.Top="25" Panel.ZIndex="1"/>
+                    <TextBlock Text="3" Foreground="#A0A0A0" FontSize="34" Canvas.Left="400" Canvas.Top="207" Panel.ZIndex="1"/>
+                    <TextBlock Text="6" Foreground="#A0A0A0" FontSize="34" Canvas.Left="220" Canvas.Top="390" Panel.ZIndex="1"/>
+                    <TextBlock Text="9" Foreground="#A0A0A0" FontSize="34" Canvas.Left="38" Canvas.Top="207" Panel.ZIndex="1"/>
+                    <Line x:Name="HourHand" Stroke="#D0D0D0" StrokeThickness="12" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Panel.ZIndex="2"/>
+                    <Line x:Name="MinuteHand" Stroke="#B8B8B8" StrokeThickness="8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Panel.ZIndex="2"/>
+                    <Line x:Name="SecondHand" Stroke="#777777" StrokeThickness="3" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Panel.ZIndex="2"/>
+                    <Ellipse Width="22" Height="22" Canvas.Left="219" Canvas.Top="219" Fill="#D0D0D0" Panel.ZIndex="3"/>
+                </Canvas>
+                <TextBlock x:Name="AnaloguePeriodText" Foreground="#888888" FontSize="34" FontWeight="Light"
+                           FontFamily="Segoe UI" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+            </StackPanel>
+            <TextBlock x:Name="DateText" Foreground="#777777" FontSize="42" FontWeight="Light"
+                       FontFamily="Segoe UI" HorizontalAlignment="Center" Margin="0,10,0,0"/>
+            <TextBlock x:Name="WakePromptText" Foreground="#777777" FontSize="30" FontWeight="SemiBold"
+                       FontFamily="Segoe UI" HorizontalAlignment="Center" Margin="0,36,0,0"
+                       TextAlignment="Center" TextWrapping="Wrap" MaxWidth="1000"/>
+        </StackPanel>
+    </Grid>
 </Window>

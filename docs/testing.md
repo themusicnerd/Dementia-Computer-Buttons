@@ -28,9 +28,9 @@ enumerated normally as `Silicon Labs CP210x USB to UART Bridge (COM3)`.
 | Minimal boot identity | PASS | `DCB/1 READY board=KS0501 fw=0.0.1-test` |
 | Minimal handshake | PASS | `HELLO DCB/1 KS0501 0.0.1-test` |
 | Minimal heartbeat | PASS | `PONG 42` |
-| Full firmware compile | PASS | 14,790 bytes (45%) flash; 880 bytes (42%) SRAM |
+| Full firmware compile | PASS | 14,962 bytes (46%) flash; 894 bytes (43%) SRAM |
 | Full firmware upload | PASS | uploaded to COM3 as Uno |
-| Full identity | PASS | board KS0501, firmware 0.2.1, protocol DCB/1; direct panel flags `pb=1 pl=1` parsed |
+| Full identity | PASS | board KS0501, firmware 0.2.2, protocol DCB/1; direct panel flags `pb=1 pl=1` parsed |
 | Windows auto-discovery | PASS | console utility enumerated and selected COM3 by handshake |
 | Heartbeat | PASS | repeated PONG processing remained healthy |
 | Command correlation | PASS | ACK and DATA requests completed |
@@ -149,3 +149,25 @@ handshake again reported firmware 0.2.1.
 The final 0.1.2 Release build completed with zero warnings and passed 52/52
 tests. Its 57,528,320-byte MSI has SHA-256
 `3845C97BEF7AACA7CA23198058195F5A3A6C24279A66ADBF20C07BF5EB582A9B`.
+
+## 2026-09-27 blackout clock and configurable hold timing
+
+The 0.1.3 revision adds digital and analogue blackout clocks, 12/24-hour time,
+operator-selected date formats, clock colour and brightness, custom wake text,
+and a full-black option. Live 3840x2160 tests verified both clock layouts and
+confirmed that mouse movement alone leaves blackout active. A mouse button and a
+keyboard key each woke it, and the temporary test configuration was restored
+byte-for-byte. A full-black capture measured RGB 0,0,0 at screen centre.
+
+Any external console-button DOWN event now wakes blackout after its normal action
+runs. The firmware hold threshold is configurable from 500 through 10000 ms and
+defaults to 1500 ms. Firmware 0.2.2 was compiled at 14,962 bytes flash and 894
+bytes SRAM, then installed through the real WPF firmware-update button on COM3.
+The app reconnected and verified 0.2.2. The diagnostic utility subsequently
+received ACK responses for 2500 ms and 1500 ms `PANEL LONGPRESS` commands, along
+with panel lighting, heartbeat and telemetry checks. Physical hold duration was
+not timed by an operator during this automated test.
+
+The Release build completed with zero warnings and passed 53/53 automated tests.
+The 57,516,032-byte 0.1.3 MSI has SHA-256
+`7B93A542DEC5D02A4D71499FFB4B57DFF6783223E400338416C4A23065BE97A4`.

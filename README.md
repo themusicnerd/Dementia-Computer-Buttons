@@ -68,22 +68,27 @@ fullscreen and always-on-top in VLC. Stop/Home closes only content launched by D
 VLC is left running when its checkbox is cleared.
 
 A normal TV-button press opens the configured YouTube URL on release. Holding
-the physical TV button for 1.5 seconds suppresses that TV action and opens the
-configured Spotify URL instead.
+the physical TV button for the configured long-press time suppresses that TV
+action and opens the configured Spotify URL instead. The setup page allows a
+500-10000 ms threshold and defaults to 1500 ms.
 
 The setup page selects Edge or Chrome for both YouTube and Spotify. It also
 provides optional contact photos, configurable call names, speaker/headphone
 audio profiles, and a display blackout schedule such as 22:00–07:00. Calls wake
 the blacked-out display temporarily and take priority over managed media.
-During a scheduled blackout, any keyboard key or mouse click temporarily wakes
-the display. The physical Stop/Home button re-arms the schedule and blacks the
+Blackout can be fully black or show a configurable digital or analogue clock,
+day, date and instruction such as `PRESS A BUTTON TO BEGIN`. The operator can
+choose 12/24-hour time, date format, colour and brightness. During a scheduled
+blackout, any keyboard key, mouse button or physical console button temporarily
+wakes the display; mouse movement alone does not. The physical Stop/Home button
+re-arms the schedule and blacks the
 screen again immediately when the current time is still inside the set period.
 While the screen is black, the six illuminated panel buttons use the
 controller's lowest non-zero PWM level. Waking the screen restores the configured
 panel brightness.
-Holding the physical Stop/Home button for 1.5 seconds also blacks out the screen
-immediately. Its normal Stop action still runs on button-down, so media and calls
-are stopped without waiting for the hold threshold.
+Holding the physical Stop/Home button for the configured long-press time also
+blacks out the screen immediately. Its normal Stop action still runs on
+button-down, so media and calls are stopped without waiting for the threshold.
 
 The setup page can export all console settings to an indented JSON file and
 import that file on another computer. Imports are validated and saved atomically;
@@ -132,7 +137,7 @@ Create the self-contained application and Windows Installer package:
 ```powershell
 .\tools\Publish-DadConsole.ps1
 .\tools\Build-Msi.ps1
-msiexec.exe /i .\dist\DementiaComputerButtons-0.1.2-x64.msi
+msiexec.exe /i .\dist\DementiaComputerButtons-0.1.3-x64.msi
 ```
 
 The MSI is self-contained and creates an all-users Start Menu shortcut. The

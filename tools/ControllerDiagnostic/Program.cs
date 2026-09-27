@@ -27,12 +27,14 @@ try
     await controller.SendCommandAsync("PANEL ALL OFF", timeout.Token);
     await controller.SendCommandAsync("PANEL LED 3 ON", timeout.Token);
     await controller.SendCommandAsync("PANEL BRIGHTNESS 25", timeout.Token);
+    await controller.SendCommandAsync("PANEL LONGPRESS 2500", timeout.Token);
     await Task.Delay(200, timeout.Token);
     await controller.SendCommandAsync("PANEL BRIGHTNESS 100", timeout.Token);
+    await controller.SendCommandAsync("PANEL LONGPRESS 1500", timeout.Token);
     await controller.SendCommandAsync("PANEL LED 3 OFF", timeout.Token);
     await controller.SendCommandAsync("TELEMETRY 500", timeout.Token);
     await Task.Delay(1700, timeout.Token);
-    Console.WriteLine("RESULT PASS handshake, panel ON/OFF/brightness commands, heartbeat and telemetry");
+    Console.WriteLine("RESULT PASS handshake, panel ON/OFF/brightness/long-press commands, heartbeat and telemetry");
 }
 catch (Exception exception)
 {
