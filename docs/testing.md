@@ -171,3 +171,16 @@ not timed by an operator during this automated test.
 The Release build completed with zero warnings and passed 53/53 automated tests.
 The 57,516,032-byte 0.1.3 MSI has SHA-256
 `7B93A542DEC5D02A4D71499FFB4B57DFF6783223E400338416C4A23065BE97A4`.
+
+## 2026-09-27 notification-area close behaviour
+
+Version 0.1.4 changes the main window's X button into a hide-to-notification-area
+action. A live Windows test sent the real `WM_CLOSE` message and verified that
+the main window and taskbar entry disappeared while the process remained alive
+and the COM3 firmware 0.2.2 handshake remained healthy. The notification icon's
+right-click menu contains the explicit **Exit Dementia Computer Buttons** command.
+Windows session ending also selects the clean shutdown path.
+
+The Release build completed with zero warnings and passed 53/53 automated tests.
+The 57,532,416-byte 0.1.4 MSI has SHA-256
+`032097D6E50EFE7EBB22095DDA2814518936956DD94534A142771AC0100685F9`.
