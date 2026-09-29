@@ -96,6 +96,17 @@ public partial class App : WpfApplication
         };
         await arduino.StartAsync();
         _host.Services.GetRequiredService<CallEventBridge>().Start();
+        try
+        {
+            var microSipInstalled = _host.Services.GetRequiredService<IApplicationManagerService>().Scan()
+                .Any(application => application.Key == "microsip" && application.IsInstalled);
+            if (microSipInstalled && Environment.ProcessPath is { } applicationPath)
+                calls.ConfigureMicroSipIntegration(applicationPath);
+        }
+        catch (Exception exception)
+        {
+            logging.Error("microsip_integration_startup_failed", exception, exception.Message);
+        }
         _host.Services.GetRequiredService<PanelLightingService>().Start();
         _ = _host.Services.GetRequiredService<CallStatusWindow>();
         displaySchedule.Start();

@@ -46,10 +46,13 @@ public sealed class ButtonActionServiceTests
     {
         var mappings = new AppConfiguration();
         var audio = new TestAudioRouting();
+        var osd = new TestOsd();
         var service = new ButtonActionService(new TestVolume(), new TestConfiguration(mappings),
-            new SystemStateService(new TestLog()), audio, new TestVlc(), new TestBrowser(), new TestCalls(), new TestOsd(), new TestLog());
+            new SystemStateService(new TestLog()), audio, new TestVlc(), new TestBrowser(), new TestCalls(), osd, new TestLog());
         await service.HandleAsync(new ButtonEvent("PANEL_8", "DOWN", 1));
         Assert.True(audio.SpeakersMuted);
+        Assert.Equal("HEADPHONES ON", osd.Headline);
+        Assert.Equal(TimeSpan.FromSeconds(4), osd.Duration);
     }
 
     [Fact]

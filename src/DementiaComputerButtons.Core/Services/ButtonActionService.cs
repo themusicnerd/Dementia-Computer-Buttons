@@ -156,10 +156,18 @@ public sealed class ButtonActionService(
                 }
                 else
                 {
-                    osd.ShowMessage(audioRouting.SpeakersMuted ? "TURNING ON SPEAKERS" : "MUTING SPEAKERS",
-                        audioRouting.SpeakersMuted ? null : "PUT ON HEADPHONES");
-                    if (!await audioRouting.ToggleSpeakersAsync(cancellationToken).ConfigureAwait(false))
-                    logging.Warning("speakers_toggle_unavailable", "Windows could not switch the selected audio output device.");
+                    var switchingToSpeakers = audioRouting.SpeakersMuted;
+                    var osdDuration = TimeSpan.FromSeconds(4);
+                    osd.ShowMessage(switchingToSpeakers ? "TURNING ON SPEAKERS" : "SWITCHING TO HEADPHONES",
+                        switchingToSpeakers ? null : "PUT ON HEADPHONES", osdDuration);
+                    if (await audioRouting.ToggleSpeakersAsync(cancellationToken).ConfigureAwait(false))
+                        osd.ShowMessage(switchingToSpeakers ? "SPEAKERS ON" : "HEADPHONES ON",
+                            switchingToSpeakers ? null : "SPEAKERS MUTED", osdDuration);
+                    else
+                    {
+                        osd.ShowMessage("AUDIO SWITCH FAILED", "CHECK AUDIO SETTINGS", osdDuration);
+                        logging.Warning("speakers_toggle_unavailable", "Windows could not switch the selected audio output device.");
+                    }
                 }
                 break;
             case "BLACKOUT":

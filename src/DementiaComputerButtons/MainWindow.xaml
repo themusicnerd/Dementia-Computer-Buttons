@@ -7,6 +7,18 @@
     <Window.Resources>
         <Style TargetType="GroupBox"><Setter Property="Margin" Value="6"/><Setter Property="Padding" Value="10"/></Style>
         <Style TargetType="Button"><Setter Property="Margin" Value="4"/><Setter Property="Padding" Value="12,7"/><Setter Property="MinWidth" Value="78"/></Style>
+        <Style x:Key="PanelLightButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Opacity" Value="0.55"/>
+            <Setter Property="BorderBrush" Value="#66727D"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Style.Triggers>
+                <Trigger Property="Tag" Value="True">
+                    <Setter Property="Opacity" Value="1"/>
+                    <Setter Property="BorderBrush" Value="#FFFF66"/>
+                    <Setter Property="BorderThickness" Value="5"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
         <Style TargetType="TextBlock"><Setter Property="VerticalAlignment" Value="Center"/></Style>
     </Window.Resources>
     <Grid Margin="10">
@@ -30,14 +42,14 @@
                 <StackPanel Grid.Column="0">
                     <GroupBox Header="Physical console: clickable preview">
                         <UniformGrid Rows="3" Columns="3" HorizontalAlignment="Center">
-                            <Button Background="White" Foreground="#17202A" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_1" AutomationProperties.Name="Volume down"><StackPanel><TextBlock Text="&#x2212;" FontSize="30" HorizontalAlignment="Center"/><TextBlock Text="Volume down"/></StackPanel></Button>
-                            <Button Background="White" Foreground="#17202A" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_8" AutomationProperties.Name="Mute speakers"><StackPanel><TextBlock Text="&#x1F507;" FontFamily="Segoe UI Emoji" FontSize="23" HorizontalAlignment="Center"/><TextBlock Text="Mute speakers"/></StackPanel></Button>
-                            <Button Background="White" Foreground="#17202A" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_2" AutomationProperties.Name="Volume up"><StackPanel><TextBlock Text="+" FontSize="30" HorizontalAlignment="Center"/><TextBlock Text="Volume up"/></StackPanel></Button>
-                            <Button Background="#1976D2" Foreground="White" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_6" AutomationProperties.Name="Play video"><StackPanel><TextBlock Text="&#x25B6;" FontSize="25" HorizontalAlignment="Center"/><TextBlock Text="Video"/></StackPanel></Button>
+                            <Button Style="{StaticResource PanelLightButton}" Tag="{Binding VolumeDownLightOn}" Background="White" Foreground="#17202A" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_1" AutomationProperties.Name="Volume down"><StackPanel><TextBlock Text="&#x2212;" FontSize="30" HorizontalAlignment="Center"/><TextBlock Text="Volume down"/></StackPanel></Button>
+                            <Button Style="{StaticResource PanelLightButton}" Tag="{Binding HeadphonesLightOn}" Background="White" Foreground="#17202A" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_8" AutomationProperties.Name="Mute speakers"><StackPanel><TextBlock Text="&#x1F507;" FontFamily="Segoe UI Emoji" FontSize="23" HorizontalAlignment="Center"/><TextBlock Text="Mute speakers"/></StackPanel></Button>
+                            <Button Style="{StaticResource PanelLightButton}" Tag="{Binding VolumeUpLightOn}" Background="White" Foreground="#17202A" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_2" AutomationProperties.Name="Volume up"><StackPanel><TextBlock Text="+" FontSize="30" HorizontalAlignment="Center"/><TextBlock Text="Volume up"/></StackPanel></Button>
+                            <Button Style="{StaticResource PanelLightButton}" Tag="{Binding VideoLightOn}" Background="#1976D2" Foreground="White" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_6" AutomationProperties.Name="Play video"><StackPanel><TextBlock Text="&#x25B6;" FontSize="25" HorizontalAlignment="Center"/><TextBlock Text="Video"/></StackPanel></Button>
                             <Border Background="Transparent" Width="100" Height="74"/>
-                            <Button Background="#1976D2" Foreground="White" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_5" AutomationProperties.Name="Watch TV" ToolTip="Short press: TV. Hold physical button: Spotify."><StackPanel><TextBlock Text="TV" FontSize="23" FontWeight="Bold" HorizontalAlignment="Center"/><TextBlock Text="Watch TV"/></StackPanel></Button>
+                            <Button Style="{StaticResource PanelLightButton}" Tag="{Binding TvLightOn}" Background="#1976D2" Foreground="White" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_5" AutomationProperties.Name="Watch TV" ToolTip="Short press: TV. Hold physical button: Spotify."><StackPanel><TextBlock Text="TV" FontSize="23" FontWeight="Bold" HorizontalAlignment="Center"/><TextBlock Text="Watch TV"/></StackPanel></Button>
                             <Button Background="#FBC02D" Foreground="#17202A" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_4" AutomationProperties.Name="Call contact two"><StackPanel><TextBlock Text="2" FontSize="25" FontWeight="Bold" HorizontalAlignment="Center"/><TextBlock Text="{Binding YvonneDisplayName}"/></StackPanel></Button>
-                            <Button Background="#D32F2F" Foreground="White" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_7" AutomationProperties.Name="Stop and return home"><StackPanel><TextBlock Text="&#x25A0;" FontSize="25" HorizontalAlignment="Center"/><TextBlock Text="Stop / Home"/></StackPanel></Button>
+                            <Button Style="{StaticResource PanelLightButton}" Tag="{Binding StopLightOn}" Background="#D32F2F" Foreground="White" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_7" AutomationProperties.Name="Stop and return home"><StackPanel><TextBlock Text="&#x25A0;" FontSize="25" HorizontalAlignment="Center"/><TextBlock Text="Stop / Home"/></StackPanel></Button>
                             <Button Background="#FBC02D" Foreground="#17202A" Command="{Binding ConsoleActionCommand}" CommandParameter="PANEL_3" AutomationProperties.Name="Call contact one"><StackPanel><TextBlock Text="1" FontSize="25" FontWeight="Bold" HorizontalAlignment="Center"/><TextBlock Text="{Binding AdrianDisplayName}"/></StackPanel></Button>
                         </UniformGrid>
                     </GroupBox>

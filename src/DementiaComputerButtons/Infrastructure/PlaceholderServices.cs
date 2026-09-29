@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 using DementiaComputerButtons.Core.Abstractions;
 using DementiaComputerButtons.Core.Models;
 using DementiaComputerButtons.Core.Services;
@@ -285,16 +286,6 @@ public sealed class CallService(IConfigurationService configuration, ILoggingSer
     {
         var microSip = FindMicroSip() ?? throw new InvalidOperationException("Install MicroSIP before configuring incoming calls.");
         if (!File.Exists(applicationPath)) throw new InvalidOperationException("Dementia Computer Buttons executable path is invalid.");
-        var runningMicroSip = Process.GetProcessesByName("MicroSIP");
-        if (runningMicroSip.Length > 0)
-        {
-            RunMicroSipCommand(microSip, "/exit");
-            foreach (var process in runningMicroSip)
-            {
-                try { process.WaitForExit(5000); }
-                finally { process.Dispose(); }
-            }
-        }
         var hookDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "DementiaComputerButtons", "MicroSipHooks");
         Directory.CreateDirectory(hookDirectory);
@@ -310,6 +301,23 @@ public sealed class CallService(IConfigurationService configuration, ILoggingSer
         var portableIni = Path.Combine(Path.GetDirectoryName(microSip)!, "microsip.ini");
         var ini = File.Exists(roamingIni) || !File.Exists(portableIni) ? roamingIni : portableIni;
         Directory.CreateDirectory(Path.GetDirectoryName(ini)!);
+        if (hooks.All(hook => ReadPrivateProfileValue("Settings", hook.Key, ini)
+                .Equals(hook.Value, StringComparison.OrdinalIgnoreCase)))
+        {
+            logging.Information("microsip_integration_verified", ini);
+            return "MicroSIP call status integration is already connected.";
+        }
+
+        var runningMicroSip = Process.GetProcessesByName("MicroSIP");
+        if (runningMicroSip.Length > 0)
+        {
+            RunMicroSipCommand(microSip, "/exit");
+            foreach (var process in runningMicroSip)
+            {
+                try { process.WaitForExit(5000); }
+                finally { process.Dispose(); }
+            }
+        }
         foreach (var hook in hooks)
             if (!WritePrivateProfileString("Settings", hook.Key, hook.Value, ini))
                 throw new InvalidOperationException($"Windows could not update {ini}.");
@@ -383,6 +391,17 @@ public sealed class CallService(IConfigurationService configuration, ILoggingSer
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool WritePrivateProfileString(string section, string key, string value, string filePath);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+    private static extern uint GetPrivateProfileString(string section, string key, string defaultValue,
+        StringBuilder value, uint size, string filePath);
+
+    private static string ReadPrivateProfileValue(string section, string key, string filePath)
+    {
+        var value = new StringBuilder(1024);
+        _ = GetPrivateProfileString(section, key, string.Empty, value, (uint)value.Capacity, filePath);
+        return value.ToString().Trim('"');
+    }
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

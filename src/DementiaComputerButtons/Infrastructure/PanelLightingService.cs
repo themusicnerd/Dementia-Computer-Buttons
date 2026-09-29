@@ -16,6 +16,10 @@ public sealed class PanelLightingService(
     private bool _panelOnline;
     private byte? _lastBrightness;
     private CancellationTokenSource? _ringing;
+    private bool[] _currentLightStates = new bool[6];
+
+    public IReadOnlyList<bool> CurrentLightStates => _currentLightStates;
+    public event EventHandler<IReadOnlyList<bool>>? LightStatesChanged;
 
     public void Start()
     {
@@ -25,6 +29,7 @@ public sealed class PanelLightingService(
         calls.StatusChanged += (_, snapshot) => OnCallStatusChanged(snapshot);
         displaySchedule.BlackoutStateChanged += (_, _) => _ = SynchronizeAsync();
         OnConnectionChanged(this, arduino.Connection);
+        _ = SynchronizeAsync();
     }
 
     private void OnCallStatusChanged(CallSnapshot snapshot)
@@ -47,6 +52,7 @@ public sealed class PanelLightingService(
         {
             while (!cancellationToken.IsCancellationRequested)
             {
+                PublishLightStates(Enumerable.Repeat(on, 6).ToArray());
                 if (_panelOnline)
                 {
                     await _sync.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -75,6 +81,15 @@ public sealed class PanelLightingService(
     private async Task SynchronizeAsync()
     {
         if (calls.Current.Status == CallStatus.Incoming) return;
+        var states = new[]
+        {
+            true, true,
+            state.Current is DadConsoleState.WatchingTV or DadConsoleState.ListeningSpotify,
+            state.Current == DadConsoleState.PlayingVideo,
+            true,
+            audio.IsAvailable && audio.SpeakersMuted
+        };
+        PublishLightStates(states);
         if (!_panelOnline) return;
         await _sync.WaitAsync().ConfigureAwait(false);
         try
@@ -91,18 +106,17 @@ public sealed class PanelLightingService(
                 _lastBrightness = brightness;
                 logging.Information("panel_brightness", $"Panel brightness set to {brightness}% (blackout={displaySchedule.IsBlackoutActive})");
             }
-            var states = new[]
-            {
-                true, true,
-                state.Current is DadConsoleState.WatchingTV or DadConsoleState.ListeningSpotify,
-                state.Current == DadConsoleState.PlayingVideo,
-                true,
-                audio.IsAvailable && audio.SpeakersMuted
-            };
             for (var index = 0; index < states.Length; ++index)
                 await arduino.SendCommandAsync($"PANEL LED {index} {(states[index] ? "ON" : "OFF")}").ConfigureAwait(false);
         }
         catch (Exception exception) { logging.Error("panel_lighting_sync_failed", exception, exception.Message); }
         finally { _sync.Release(); }
+    }
+
+    private void PublishLightStates(bool[] states)
+    {
+        if (_currentLightStates.SequenceEqual(states)) return;
+        _currentLightStates = states;
+        LightStatesChanged?.Invoke(this, states);
     }
 }

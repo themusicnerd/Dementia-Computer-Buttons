@@ -107,7 +107,13 @@ internal sealed class TestOsd : IOnScreenDisplayService
 {
     public string? Headline { get; private set; }
     public string? Detail { get; private set; }
-    public void ShowMessage(string headline, string? detail = null) { Headline = headline; Detail = detail; }
+    public TimeSpan? Duration { get; private set; }
+    public void ShowMessage(string headline, string? detail = null, TimeSpan? duration = null)
+    {
+        Headline = headline;
+        Detail = detail;
+        Duration = duration;
+    }
 }
 
 internal sealed class TestWindowsShell : IWindowsShellService

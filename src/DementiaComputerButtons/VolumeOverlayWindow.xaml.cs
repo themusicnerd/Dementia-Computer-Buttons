@@ -11,7 +11,9 @@ public partial class VolumeOverlayWindow : Window, IOnScreenDisplayService
     private const int ExtendedStyleIndex = -20;
     private const int NoActivate = 0x08000000;
     private const int ToolWindow = 0x00000080;
-    private readonly DispatcherTimer _hideTimer = new() { Interval = TimeSpan.FromSeconds(2.2) };
+    private static readonly TimeSpan DefaultDuration = TimeSpan.FromSeconds(2.2);
+    private readonly DispatcherTimer _hideTimer = new() { Interval = DefaultDuration };
+    private DateTimeOffset _messageVisibleUntilUtc = DateTimeOffset.MinValue;
 
     public VolumeOverlayWindow()
     {
@@ -27,6 +29,7 @@ public partial class VolumeOverlayWindow : Window, IOnScreenDisplayService
             Dispatcher.BeginInvoke(() => ShowVolume(percent, muted));
             return;
         }
+        if (DateTimeOffset.UtcNow < _messageVisibleUntilUtc) return;
 
         var value = Math.Clamp((int)Math.Round(percent), 0, 100);
         PercentText.Text = $"{value}%";
@@ -41,17 +44,21 @@ public partial class VolumeOverlayWindow : Window, IOnScreenDisplayService
         PositionAtBottom();
         if (!IsVisible) Show();
         Topmost = true;
+        _hideTimer.Interval = DefaultDuration;
         _hideTimer.Stop();
         _hideTimer.Start();
     }
 
-    public void ShowMessage(string headline, string? detail = null)
+    public void ShowMessage(string headline, string? detail = null, TimeSpan? duration = null)
     {
         if (!Dispatcher.CheckAccess())
         {
-            Dispatcher.BeginInvoke(() => ShowMessage(headline, detail));
+            Dispatcher.BeginInvoke(() => ShowMessage(headline, detail, duration));
             return;
         }
+        var visibleDuration = duration.GetValueOrDefault(DefaultDuration);
+        if (visibleDuration <= TimeSpan.Zero) visibleDuration = DefaultDuration;
+        _messageVisibleUntilUtc = DateTimeOffset.UtcNow + visibleDuration;
         MuteText.Text = headline.ToUpperInvariant();
         MuteText.HorizontalAlignment = System.Windows.HorizontalAlignment.Center;
         MuteText.TextAlignment = TextAlignment.Center;
@@ -62,6 +69,7 @@ public partial class VolumeOverlayWindow : Window, IOnScreenDisplayService
         PositionAtBottom();
         if (!IsVisible) Show();
         Topmost = true;
+        _hideTimer.Interval = visibleDuration;
         _hideTimer.Stop();
         _hideTimer.Start();
     }

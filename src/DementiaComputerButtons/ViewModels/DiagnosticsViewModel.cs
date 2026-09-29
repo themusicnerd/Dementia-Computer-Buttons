@@ -44,6 +44,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
     private readonly IUpdateService _updates;
     private readonly IFirmwareUpdateService _firmwareUpdate;
     private readonly DisplayScheduleService _displaySchedule;
+    private readonly PanelLightingService _panelLighting;
     private readonly IUserPromptService _prompts;
     private readonly ILoggingService _logging;
     private TaskCompletionSource<string>? _buttonWaiter;
@@ -112,6 +113,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         IUpdateService updates,
         IFirmwareUpdateService firmwareUpdate,
         DisplayScheduleService displaySchedule,
+        PanelLightingService panelLighting,
         IUserPromptService prompts, ILoggingService logging)
     {
         _arduino = arduino;
@@ -126,6 +128,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         _updates = updates;
         _firmwareUpdate = firmwareUpdate;
         _displaySchedule = displaySchedule;
+        _panelLighting = panelLighting;
         _prompts = prompts;
         _logging = logging;
         SetRgb1Command = new AsyncRelayCommand(() => SendAsync($"RGB 0 {(byte)Rgb1Red} {(byte)Rgb1Green} {(byte)Rgb1Blue}"));
@@ -223,6 +226,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         _arduino.MessageReceived += (_, message) => OnUi(() => LastMessage = message);
         _volume.VolumeChanged += (_, percent) => OnUi(() => { VolumePercent = percent; Muted = _volume.IsMuted; });
         _state.StateChanged += (_, value) => OnUi(() => SystemState = DescribeState(value));
+        _panelLighting.LightStatesChanged += (_, _) => OnUi(RaisePreviewLightProperties);
         ApplyConnection(_arduino.Connection);
         VolumePercent = _volume.CurrentVolumePercent;
     }
@@ -323,6 +327,12 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
     public double Rgb2Blue { get; set; }
     public double PanelBrightness { get => _panelBrightness; set => Set(ref _panelBrightness, value); }
     public double LongPressMilliseconds { get => _longPressMilliseconds; set => Set(ref _longPressMilliseconds, value); }
+    public bool VolumeDownLightOn => PreviewLight(0);
+    public bool VolumeUpLightOn => PreviewLight(1);
+    public bool TvLightOn => PreviewLight(2);
+    public bool VideoLightOn => PreviewLight(3);
+    public bool StopLightOn => PreviewLight(4);
+    public bool HeadphonesLightOn => PreviewLight(5);
 
     private void OpenActivityLogFolder()
     {
@@ -786,6 +796,16 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
     {
         var dispatcher = System.Windows.Application.Current?.Dispatcher;
         if (dispatcher is null || dispatcher.CheckAccess()) action(); else dispatcher.BeginInvoke(action);
+    }
+
+    private bool PreviewLight(int index) => index < _panelLighting.CurrentLightStates.Count &&
+        _panelLighting.CurrentLightStates[index];
+
+    private void RaisePreviewLightProperties()
+    {
+        foreach (var name in new[] { nameof(VolumeDownLightOn), nameof(VolumeUpLightOn), nameof(TvLightOn),
+                     nameof(VideoLightOn), nameof(StopLightOn), nameof(HeadphonesLightOn) })
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 
     private void Set<T>(ref T field, T value, [CallerMemberName] string? name = null)
