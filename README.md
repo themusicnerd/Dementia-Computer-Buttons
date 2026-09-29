@@ -139,7 +139,7 @@ Create the self-contained application and Windows Installer package:
 ```powershell
 .\tools\Publish-DadConsole.ps1
 .\tools\Build-Msi.ps1
-msiexec.exe /i .\dist\DementiaComputerButtons-0.1.6-x64.msi
+msiexec.exe /i .\dist\DementiaComputerButtons-0.1.7-x64.msi
 ```
 
 The MSI is self-contained and creates an all-users Start Menu shortcut. The
@@ -147,6 +147,9 @@ engineering console checks VLC, Zoom, MicroSIP, Spotify and Chrome and offers
 trusted `winget` installation actions when needed. The CP210x driver normally
 comes through Windows Update. Enable automatic launch with the **Start Dementia
 Computer Buttons automatically after Windows sign-in** setting in the console.
+Optional appliance-session protection hides ordinary Sign out and Lock actions
+and prevents sleep while the controller runs. Its automatic sign-in button uses
+Microsoft Sysinternals Autologon; the app never stores the account password.
 See [build-and-install.md](docs/build-and-install.md) for clean-machine build,
 installation, logging, firmware, upgrade and release instructions.
 

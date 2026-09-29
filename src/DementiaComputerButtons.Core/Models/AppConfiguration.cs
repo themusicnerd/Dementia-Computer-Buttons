@@ -29,6 +29,7 @@ public sealed class AppConfiguration
     public LightingConfiguration Lighting { get; set; } = new();
     public DisplayScheduleConfiguration DisplaySchedule { get; set; } = new();
     public StartupConfiguration Startup { get; set; } = new();
+    public ApplianceModeConfiguration ApplianceMode { get; set; } = new();
     public UpdateConfiguration Updates { get; set; } = new();
     public Dictionary<string, string> IrCommands { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }
@@ -43,6 +44,11 @@ public sealed class UpdateConfiguration
 public sealed class StartupConfiguration
 {
     public bool StartWithWindows { get; set; }
+}
+
+public sealed class ApplianceModeConfiguration
+{
+    public bool ProtectSession { get; set; }
 }
 
 public sealed class DisplayScheduleConfiguration

@@ -41,6 +41,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
     private readonly IApplicationManagerService _applicationManager;
     private readonly ICallService _calls;
     private readonly IStartupService _startup;
+    private readonly IApplianceModeService _applianceMode;
     private readonly IUpdateService _updates;
     private readonly IFirmwareUpdateService _firmwareUpdate;
     private readonly DisplayScheduleService _displaySchedule;
@@ -97,6 +98,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
     private string _blackoutFrom = "22:00";
     private string _resumeAt = "07:00";
     private bool _startWithWindows;
+    private bool _protectSession;
     private string _updateStatus = "Not checked";
     private bool _canInstallUpdate;
     private UpdateRelease? _availableUpdate;
@@ -110,6 +112,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         IApplicationManagerService applicationManager,
         ICallService calls,
         IStartupService startup,
+        IApplianceModeService applianceMode,
         IUpdateService updates,
         IFirmwareUpdateService firmwareUpdate,
         DisplayScheduleService displaySchedule,
@@ -125,6 +128,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         _applicationManager = applicationManager;
         _calls = calls;
         _startup = startup;
+        _applianceMode = applianceMode;
         _updates = updates;
         _firmwareUpdate = firmwareUpdate;
         _displaySchedule = displaySchedule;
@@ -157,6 +161,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         RefreshApplicationsCommand = new RelayCommand(_ => RefreshApplications());
         InstallApplicationCommand = new AsyncParameterCommand(InstallApplicationAsync);
         ConfigureMicroSipCommand = new RelayCommand(_ => ConfigureMicroSip());
+        ConfigureAutoLogonCommand = new AsyncRelayCommand(ConfigureAutoLogonAsync);
         OpenActivityLogCommand = new RelayCommand(_ => OpenActivityLogFolder());
         CheckForUpdatesCommand = new AsyncRelayCommand(() => CheckForUpdatesAsync(false));
         InstallUpdateCommand = new AsyncRelayCommand(InstallUpdateAsync);
@@ -204,6 +209,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         BlackoutFrom = configuration.Current.DisplaySchedule.BlackoutFrom;
         ResumeAt = configuration.Current.DisplaySchedule.ResumeAt;
         StartWithWindows = configuration.Current.Startup.StartWithWindows || startup.IsEnabled;
+        ProtectSession = configuration.Current.ApplianceMode.ProtectSession || applianceMode.IsSessionProtectionEnabled;
         RefreshAudioDevices();
         SelectedSpeakerDeviceId = ResolveSavedDeviceId(configuration.Current.AudioRouting.SpeakerDeviceId,
             configuration.Current.AudioRouting.SpeakerDeviceName);
@@ -264,6 +270,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
     public ICommand RefreshApplicationsCommand { get; }
     public ICommand InstallApplicationCommand { get; }
     public ICommand ConfigureMicroSipCommand { get; }
+    public ICommand ConfigureAutoLogonCommand { get; }
     public ICommand OpenActivityLogCommand { get; }
     public ICommand CheckForUpdatesCommand { get; }
     public ICommand InstallUpdateCommand { get; }
@@ -312,6 +319,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
     public string BlackoutFrom { get => _blackoutFrom; set => Set(ref _blackoutFrom, value); }
     public string ResumeAt { get => _resumeAt; set => Set(ref _resumeAt, value); }
     public bool StartWithWindows { get => _startWithWindows; set => Set(ref _startWithWindows, value); }
+    public bool ProtectSession { get => _protectSession; set => Set(ref _protectSession, value); }
     public string UpdateStatus { get => _updateStatus; private set => Set(ref _updateStatus, value); }
     public bool CanInstallUpdate { get => _canInstallUpdate; private set => Set(ref _canInstallUpdate, value); }
     public string FirmwareUpdateStatus { get => _firmwareUpdateStatus; private set => Set(ref _firmwareUpdateStatus, value); }
@@ -481,8 +489,10 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
             _configuration.Current.DisplaySchedule.BlackoutFrom = BlackoutFrom;
             _configuration.Current.DisplaySchedule.ResumeAt = ResumeAt;
             _configuration.Current.Startup.StartWithWindows = StartWithWindows;
+            _configuration.Current.ApplianceMode.ProtectSession = ProtectSession;
             _configuration.Current.Controller.LongPressMilliseconds = (int)Math.Clamp(Math.Round(LongPressMilliseconds), 500, 10000);
             _startup.SetEnabled(StartWithWindows);
+            _applianceMode.SetSessionProtection(ProtectSession);
             SaveAudioDeviceSelection();
             await _configuration.SaveAsync();
             _displaySchedule.Evaluate();
@@ -550,6 +560,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
             await _configuration.ImportAsync(dialog.FileName);
             LoadEditorFromConfiguration();
             _startup.SetEnabled(StartWithWindows);
+            _applianceMode.SetSessionProtection(ProtectSession);
             _displaySchedule.Evaluate();
             OperationStatus = $"Settings imported from {dialog.FileName}";
             _logging.Information("settings_imported", dialog.FileName);
@@ -591,6 +602,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         BlackoutFrom = current.DisplaySchedule.BlackoutFrom;
         ResumeAt = current.DisplaySchedule.ResumeAt;
         StartWithWindows = current.Startup.StartWithWindows;
+        ProtectSession = current.ApplianceMode.ProtectSession;
         PanelBrightness = current.Lighting.PanelBrightnessPercent;
         LongPressMilliseconds = current.Controller.LongPressMilliseconds;
         RefreshAudioDevices();
@@ -796,6 +808,20 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
     {
         var dispatcher = System.Windows.Application.Current?.Dispatcher;
         if (dispatcher is null || dispatcher.CheckAccess()) action(); else dispatcher.BeginInvoke(action);
+    }
+
+    private async Task ConfigureAutoLogonAsync()
+    {
+        try
+        {
+            OperationStatus = "Opening Microsoft automatic sign-in setup...";
+            OperationStatus = await _applianceMode.ConfigureAutoLogonAsync();
+        }
+        catch (Exception exception)
+        {
+            OperationStatus = $"AUTO SIGN-IN SETUP FAILED: {exception.Message}";
+            _logging.Error("autologon_setup_failed", exception, exception.Message);
+        }
     }
 
     private bool PreviewLight(int index) => index < _panelLighting.CurrentLightStates.Count &&

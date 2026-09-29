@@ -56,7 +56,7 @@ The build uses the pinned `WixToolset.Sdk` 5.0.2 package from NuGet. No global
 WiX installation is required. The resulting installer is:
 
 ```text
-dist\DementiaComputerButtons-0.1.6-x64.msi
+dist\DementiaComputerButtons-0.1.7-x64.msi
 ```
 
 The MSI installs for all users under `Program Files\Dementia Computer Buttons`,
@@ -92,13 +92,13 @@ release channel.
 Use Explorer or an elevated PowerShell terminal:
 
 ```powershell
-msiexec.exe /i .\dist\DementiaComputerButtons-0.1.6-x64.msi
+msiexec.exe /i .\dist\DementiaComputerButtons-0.1.7-x64.msi
 ```
 
 For a diagnostic installation log:
 
 ```powershell
-msiexec.exe /i .\dist\DementiaComputerButtons-0.1.6-x64.msi /l*v .\dcb-install.log
+msiexec.exe /i .\dist\DementiaComputerButtons-0.1.7-x64.msi /l*v .\dcb-install.log
 ```
 
 Uninstall through Windows **Settings > Apps > Installed apps**, or by invoking

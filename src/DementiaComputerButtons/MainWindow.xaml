@@ -132,6 +132,9 @@
                             </DockPanel>
                             <TextBlock Text="Applies to holding TV for Spotify and holding Stop/Home for blackout." Foreground="#52606D" TextWrapping="Wrap"/>
                             <CheckBox Content="Start Dementia Computer Buttons automatically after Windows sign-in" IsChecked="{Binding StartWithWindows}" Margin="5"/>
+                            <CheckBox Content="Appliance session protection: hide Sign out and Lock, and prevent automatic sleep" IsChecked="{Binding ProtectSession}" Margin="5"/>
+                            <Button Content="Configure automatic Windows sign-in..." Command="{Binding ConfigureAutoLogonCommand}" HorizontalAlignment="Left"/>
+                            <TextBlock Text="Automatic sign-in gives anyone with physical access use of this account. Passwords are handled by Microsoft's Autologon tool and are never saved in this app's settings." Foreground="#8A3B12" TextWrapping="Wrap"/>
                             <WrapPanel>
                                 <Button Content="Save console settings" Command="{Binding SaveContentCommand}"/>
                                 <Button Content="Export settings..." Command="{Binding ExportSettingsCommand}"/>

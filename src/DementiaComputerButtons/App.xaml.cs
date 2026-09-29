@@ -37,8 +37,11 @@ public partial class App : WpfApplication
         var startup = _host.Services.GetRequiredService<IStartupService>();
         try
         {
-            if (_host.Services.GetRequiredService<IConfigurationService>().Current.Startup.StartWithWindows)
+            var settings = _host.Services.GetRequiredService<IConfigurationService>().Current;
+            if (settings.Startup.StartWithWindows)
                 startup.SetEnabled(true);
+            if (settings.ApplianceMode.ProtectSession)
+                _host.Services.GetRequiredService<IApplianceModeService>().SetSessionProtection(true);
         }
         catch (Exception exception)
         {
@@ -203,6 +206,7 @@ public partial class App : WpfApplication
         services.AddSingleton<IBrowserService, BrowserService>();
         services.AddSingleton<ICallService, CallService>();
         services.AddSingleton<IWindowsShellService, WindowsShellService>();
+        services.AddSingleton<IApplianceModeService, WindowsApplianceModeService>();
         services.AddSingleton<IStartupService, WindowsStartupService>();
         services.AddSingleton<IUpdateService, GitHubUpdateService>();
         services.AddSingleton<IApplicationManagerService, ApplicationManagerService>();

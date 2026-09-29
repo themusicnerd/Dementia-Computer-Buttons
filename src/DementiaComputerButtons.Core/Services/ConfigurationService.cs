@@ -110,6 +110,7 @@ public sealed class ConfigurationService(string path, ILoggingService logging) :
         configuration.Lighting ??= new LightingConfiguration();
         configuration.DisplaySchedule ??= new DisplayScheduleConfiguration();
         configuration.Startup ??= new StartupConfiguration();
+        configuration.ApplianceMode ??= new ApplianceModeConfiguration();
         configuration.Updates ??= new UpdateConfiguration();
         configuration.IrCommands ??= new(StringComparer.OrdinalIgnoreCase);
         if (configuration.VolumeStepPercent is < 1 or > 25)

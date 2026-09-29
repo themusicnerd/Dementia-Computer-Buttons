@@ -51,6 +51,7 @@ public sealed class ConfigurationServiceTests
             service.Current.Calls.QuietHours.Until = "07:15";
             service.Current.Startup.StartWithWindows = true;
             service.Current.Updates.CheckAutomatically = false;
+            service.Current.ApplianceMode.ProtectSession = true;
             await service.SaveAsync();
 
             var reloaded = new ConfigurationService(path, new TestLog());
@@ -63,6 +64,7 @@ public sealed class ConfigurationServiceTests
             Assert.Equal("07:15", reloaded.Current.Calls.QuietHours.Until);
             Assert.True(reloaded.Current.Startup.StartWithWindows);
             Assert.False(reloaded.Current.Updates.CheckAutomatically);
+            Assert.True(reloaded.Current.ApplianceMode.ProtectSession);
         }
         finally { File.Delete(path); }
     }

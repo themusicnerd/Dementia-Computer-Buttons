@@ -89,6 +89,12 @@ public interface IWindowsShellService
 {
     bool CloseStartMenuIfOpen();
 }
+public interface IApplianceModeService
+{
+    bool IsSessionProtectionEnabled { get; }
+    void SetSessionProtection(bool enabled);
+    Task<string> ConfigureAutoLogonAsync(CancellationToken cancellationToken = default);
+}
 public interface IStartupService
 {
     bool IsEnabled { get; }
