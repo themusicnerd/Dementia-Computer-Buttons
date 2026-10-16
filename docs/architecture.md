@@ -96,6 +96,9 @@ and sets it through the Windows desktop setting call. GPS photographs use one
 OpenStreetMap tile with visible attribution and a Nominatim reverse lookup for
 the suburb. Both results are cached locally. Network failures fall back to
 cached data or coordinates without stopping wallpaper rotation.
+EXIF orientation values 1 through 8 are normalised before the image is cropped.
+The map viewport is assembled from only the tiles needed around the coordinate,
+keeping the coordinate centred beneath the marker.
 
 `FirmwareUpdateService` requires a live KS0501 handshake and captures that
 specific COM port before stopping serial discovery. It verifies the bundled HEX

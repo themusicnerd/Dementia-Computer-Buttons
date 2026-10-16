@@ -45,7 +45,7 @@ public sealed class WindowsWallpaperService : IWallpaperService
         _logging = logging;
         _http.Timeout = TimeSpan.FromSeconds(12);
         _http.DefaultRequestHeaders.UserAgent.ParseAdd(
-            "DementiaComputerButtons/0.1.10 (+https://github.com/themusicnerd/Dementia-Computer-Buttons)");
+            "DementiaComputerButtons/0.1.11 (+https://github.com/themusicnerd/Dementia-Computer-Buttons)");
         Current = new(false, "Wallpaper rotation is disabled", null, null, 0);
     }
 
@@ -178,6 +178,7 @@ public sealed class WindowsWallpaperService : IWallpaperService
             var decoder = BitmapDecoder.Create(source, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
             BitmapSource bitmap = decoder.Frames[0];
             bitmap.Freeze();
+            bitmap = ApplyExifOrientation(bitmap, metadata.Orientation);
             var bounds = Forms.Screen.PrimaryScreen?.Bounds ?? new System.Drawing.Rectangle(0, 0, 1920, 1080);
             var width = Math.Max(800, bounds.Width);
             var height = Math.Max(600, bounds.Height);
@@ -229,26 +230,51 @@ public sealed class WindowsWallpaperService : IWallpaperService
         var mapRect = new Rect(mapLeft, mapTop, mapSize, mapSize);
         drawing.DrawRoundedRectangle(new SolidColorBrush(Color.FromArgb(205, 245, 245, 245)),
             new Pen(new SolidColorBrush(Color.FromArgb(220, 255, 255, 255)), 3), mapRect, 8, 8);
-        var map = location.GetMap();
-        if (map is not null)
-            drawing.DrawImage(map, new Rect(mapLeft + 3, mapTop + 3, mapSize - 6, mapSize - 6));
-        else
+        var innerLeft = mapLeft + 3;
+        var innerTop = mapTop + 3;
+        var innerSize = mapSize - 6;
+        var tileScale = innerSize / LocationOverlay.ViewportPixels;
+        var drewMap = false;
+        drawing.PushClip(new RectangleGeometry(new Rect(innerLeft, innerTop, innerSize, innerSize)));
+        foreach (var tile in location.Tiles)
+        {
+            var map = tile.GetMap();
+            if (map is null) continue;
+            drawing.DrawImage(map, new Rect(innerLeft + tile.OffsetX * tileScale,
+                innerTop + tile.OffsetY * tileScale, 256 * tileScale, 256 * tileScale));
+            drewMap = true;
+        }
+        drawing.Pop();
+        if (!drewMap)
             DrawShadowedText(drawing, "MAP UNAVAILABLE", mapLeft + mapSize / 2, mapTop + mapSize / 2 - 14,
                 20, TextAlignment.Center);
 
-        var pinX = mapLeft + 3 + (mapSize - 6) * location.PinX;
-        var pinY = mapTop + 3 + (mapSize - 6) * location.PinY;
+        var pinX = mapLeft + mapSize / 2;
+        var pinY = mapTop + mapSize / 2;
         var pinBrush = new SolidColorBrush(Color.FromRgb(220, 28, 28));
-        drawing.DrawEllipse(pinBrush, new Pen(Brushes.White, 3), new Point(pinX, pinY - 9), 10, 10);
+        var pinShadow = new StreamGeometry();
+        using (var context = pinShadow.Open())
+        {
+            context.BeginFigure(new Point(pinX - 15, pinY - 22), true, true);
+            context.LineTo(new Point(pinX + 15, pinY - 22), true, false);
+            context.LineTo(new Point(pinX, pinY + 3), true, false);
+        }
+        pinShadow.Freeze();
+        drawing.DrawGeometry(Brushes.Black, null, pinShadow);
+        drawing.DrawEllipse(Brushes.Black, null, new Point(pinX + 3, pinY - 27), 23, 23);
+        drawing.DrawGeometry(Brushes.White, new Pen(Brushes.Black, 2), pinShadow);
+        drawing.DrawEllipse(Brushes.White, new Pen(Brushes.Black, 2), new Point(pinX, pinY - 30), 21, 21);
         var pin = new StreamGeometry();
         using (var context = pin.Open())
         {
-            context.BeginFigure(new Point(pinX - 7, pinY - 4), true, true);
-            context.LineTo(new Point(pinX + 7, pinY - 4), true, false);
-            context.LineTo(new Point(pinX, pinY + 12), true, false);
+            context.BeginFigure(new Point(pinX - 11, pinY - 22), true, true);
+            context.LineTo(new Point(pinX + 11, pinY - 22), true, false);
+            context.LineTo(new Point(pinX, pinY), true, false);
         }
         pin.Freeze();
         drawing.DrawGeometry(pinBrush, null, pin);
+        drawing.DrawEllipse(pinBrush, null, new Point(pinX, pinY - 30), 16, 16);
+        drawing.DrawEllipse(Brushes.White, null, new Point(pinX, pinY - 30), 6, 6);
         DrawOutlinedSmallText(drawing, "© OpenStreetMap contributors", mapLeft + 8, mapTop + mapSize - 24);
         DrawShadowedText(drawing, location.DisplayName, width - 48, height - 88, 35, TextAlignment.Right);
     }
@@ -335,28 +361,41 @@ public sealed class WindowsWallpaperService : IWallpaperService
         var worldX = (longitude + 180d) / 360d * n;
         var radians = safeLatitude * Math.PI / 180d;
         var worldY = (1d - Math.Log(Math.Tan(radians) + 1d / Math.Cos(radians)) / Math.PI) / 2d * n;
-        var tileX = Math.Clamp((int)Math.Floor(worldX), 0, (int)n - 1);
-        var tileY = Math.Clamp((int)Math.Floor(worldY), 0, (int)n - 1);
-        var tilePath = Path.Combine(cache, $"osm_{zoom}_{tileX}_{tileY}.png");
-        byte[]? bytes = null;
-        try
+        var worldPixelX = worldX * 256d;
+        var worldPixelY = worldY * 256d;
+        var viewportLeft = worldPixelX - LocationOverlay.ViewportPixels / 2d;
+        var viewportTop = worldPixelY - LocationOverlay.ViewportPixels / 2d;
+        var tiles = new List<MapTile>();
+        var firstTileX = (int)Math.Floor(viewportLeft / 256d);
+        var lastTileX = (int)Math.Floor((viewportLeft + LocationOverlay.ViewportPixels - 1) / 256d);
+        var firstTileY = (int)Math.Floor(viewportTop / 256d);
+        var lastTileY = (int)Math.Floor((viewportTop + LocationOverlay.ViewportPixels - 1) / 256d);
+        for (var sourceTileY = firstTileY; sourceTileY <= lastTileY; sourceTileY++)
+        for (var sourceTileX = firstTileX; sourceTileX <= lastTileX; sourceTileX++)
         {
-            if (!File.Exists(tilePath) || DateTime.UtcNow - File.GetLastWriteTimeUtc(tilePath) > TimeSpan.FromDays(30))
+            var tileX = ((sourceTileX % (int)n) + (int)n) % (int)n;
+            var tileY = Math.Clamp(sourceTileY, 0, (int)n - 1);
+            var tilePath = Path.Combine(cache, $"osm_{zoom}_{tileX}_{tileY}.png");
+            byte[]? bytes = null;
+            try
             {
-                bytes = await _http.GetByteArrayAsync(
-                    $"https://tile.openstreetmap.org/{zoom}/{tileX}/{tileY}.png", cancellationToken).ConfigureAwait(false);
-                await File.WriteAllBytesAsync(tilePath, bytes, cancellationToken).ConfigureAwait(false);
+                if (!File.Exists(tilePath) || DateTime.UtcNow - File.GetLastWriteTimeUtc(tilePath) > TimeSpan.FromDays(30))
+                {
+                    bytes = await _http.GetByteArrayAsync(
+                        $"https://tile.openstreetmap.org/{zoom}/{tileX}/{tileY}.png", cancellationToken).ConfigureAwait(false);
+                    await File.WriteAllBytesAsync(tilePath, bytes, cancellationToken).ConfigureAwait(false);
+                }
+                else bytes = await File.ReadAllBytesAsync(tilePath, cancellationToken).ConfigureAwait(false);
             }
-            else bytes = await File.ReadAllBytesAsync(tilePath, cancellationToken).ConfigureAwait(false);
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                _logging.Warning("wallpaper_map_failed", exception.Message);
+                if (File.Exists(tilePath))
+                    bytes = await File.ReadAllBytesAsync(tilePath, cancellationToken).ConfigureAwait(false);
+            }
+            tiles.Add(new(bytes, sourceTileX * 256d - viewportLeft, sourceTileY * 256d - viewportTop));
         }
-        catch (Exception exception) when (exception is not OperationCanceledException)
-        {
-            _logging.Warning("wallpaper_map_failed", exception.Message);
-            if (File.Exists(tilePath))
-                bytes = await File.ReadAllBytesAsync(tilePath, cancellationToken).ConfigureAwait(false);
-        }
-        return new(displayName, bytes, Math.Clamp(worldX - Math.Floor(worldX), 0, 1),
-            Math.Clamp(worldY - Math.Floor(worldY), 0, 1));
+        return new(displayName, tiles);
     }
 
     private static string? ReadSuburb(JsonElement root)
@@ -376,7 +415,32 @@ public sealed class WindowsWallpaperService : IWallpaperService
         var metadata = frame.Metadata as BitmapMetadata;
         var takenAt = ParseDate(metadata?.DateTaken) ?? File.GetLastWriteTime(path);
         return new(takenAt, ReadGps(metadata, "/app1/ifd/gps/{ushort=2}", "/app1/ifd/gps/{ushort=1}"),
-            ReadGps(metadata, "/app1/ifd/gps/{ushort=4}", "/app1/ifd/gps/{ushort=3}"));
+            ReadGps(metadata, "/app1/ifd/gps/{ushort=4}", "/app1/ifd/gps/{ushort=3}"), ReadOrientation(metadata));
+    }
+
+    private static ushort ReadOrientation(BitmapMetadata? metadata)
+    {
+        try { return Convert.ToUInt16(metadata?.GetQuery("/app1/ifd/{ushort=274}") ?? 1, CultureInfo.InvariantCulture); }
+        catch { return 1; }
+    }
+
+    private static BitmapSource ApplyExifOrientation(BitmapSource source, ushort orientation)
+    {
+        var matrix = orientation switch
+        {
+            2 => new Matrix(-1, 0, 0, 1, 0, 0),
+            3 => new Matrix(-1, 0, 0, -1, 0, 0),
+            4 => new Matrix(1, 0, 0, -1, 0, 0),
+            5 => new Matrix(0, 1, 1, 0, 0, 0),
+            6 => new Matrix(0, 1, -1, 0, 0, 0),
+            7 => new Matrix(0, -1, -1, 0, 0, 0),
+            8 => new Matrix(0, -1, 1, 0, 0, 0),
+            _ => Matrix.Identity
+        };
+        if (matrix.IsIdentity) return source;
+        var transformed = new TransformedBitmap(source, new MatrixTransform(matrix));
+        transformed.Freeze();
+        return transformed;
     }
 
     private static DateTime? ParseDate(string? value)
@@ -453,13 +517,18 @@ public sealed class WindowsWallpaperService : IWallpaperService
         return ValueTask.CompletedTask;
     }
 
-    private sealed record PhotoMetadata(DateTime TakenAt, double? Latitude, double? Longitude);
-    private sealed record LocationOverlay(string DisplayName, byte[]? MapBytes, double PinX, double PinY)
+    private sealed record PhotoMetadata(DateTime TakenAt, double? Latitude, double? Longitude, ushort Orientation);
+    private sealed record LocationOverlay(string DisplayName, IReadOnlyList<MapTile> Tiles)
+    {
+        public const double ViewportPixels = 300;
+    }
+
+    private sealed record MapTile(byte[]? Bytes, double OffsetX, double OffsetY)
     {
         public BitmapSource? GetMap()
         {
-            if (MapBytes is null) return null;
-            using var stream = new MemoryStream(MapBytes);
+            if (Bytes is null) return null;
+            using var stream = new MemoryStream(Bytes);
             var bitmap = BitmapFrame.Create(stream, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
             bitmap.Freeze();
             return bitmap;

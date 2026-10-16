@@ -244,3 +244,19 @@ without elevation (Windows Installer error 1730). The application updater uses
 the normal `runas` UAC path; no elevation bypass was attempted. The controller
 was not enumerated by Windows during the final launch, so this change does not
 add a new physical-controller verification claim.
+
+## 2026-10-16 photo orientation and map marker
+
+Version 0.1.11 applies all eight EXIF orientation transforms before wallpaper
+cropping. It also centres the map on the photograph coordinate and replaces the
+small marker with a large red pin, white outline, black shadow and white centre
+dot. The map viewport uses only the surrounding tiles required for its visible
+square and clips them to the frame.
+
+The actual render path was exercised with an asymmetric 1600 by 900 JPEG marked
+with EXIF orientation 3, an EXIF capture time, and Sydney GPS coordinates. Visual
+inspection confirmed the required 180-degree rotation, a properly clipped square
+map, and the large centred marker. The application remained responsive, the
+operator's settings and wallpaper were restored, and all 66 automated tests
+passed. The 59,285,504-byte 0.1.11 MSI has SHA-256
+`FC7DA5E97456B0224C3FA306761F3210E20E2049715CEA285D0CB0BBFDA6E719`.
