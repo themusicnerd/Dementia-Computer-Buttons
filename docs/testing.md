@@ -217,3 +217,30 @@ so live Drive synchronisation and a real-folder wallpaper rotation remain
 operator verification items. No claim is made that those external behaviours
 passed on this machine. The 59,273,216-byte 0.1.9 MSI has SHA-256
 `73FA2B116795CF9E2AAB4893F7C28C8A00475EEBBADA4DED5BC09554D1D4F96A`.
+
+## 2026-10-16 wallpaper layout and startup hotfix
+
+Version 0.1.10 fixes the 0.1.9 startup failure caused by a WPF progress bar
+attempting a two-way binding to the read-only `VolumePercent` property. The
+binding is explicitly one-way. Two local launches, including the packaged
+Release executable, remained responsive and produced no new matching .NET or
+Application Error events.
+
+The wallpaper now renders day, date and time as separate top-right lines. A GPS
+photo renders a square OpenStreetMap tile and red coordinate pin above a
+reverse-geocoded suburb at the bottom right. Text uses a wider soft shadow plus
+a directional drop shadow. The map and suburb are cached for offline reuse.
+
+The real render path was exercised with a generated 1920 by 1080 JPEG carrying
+EXIF coordinates for Sydney and an EXIF capture time of 3:42 PM on 16 October
+2026. Visual inspection confirmed all three time lines, the square map, red pin,
+suburb label, and attribution inside the map. The operator's configuration and
+previous wallpaper were backed up and restored after each run. The Release
+build completed with zero warnings and all 66 automated tests passed. The
+59,285,504-byte 0.1.10 MSI has SHA-256
+`D1B4EEA1D911DF8D340EB46F8E62A9FC644967FDEAFC8D0833416E79F2F743A2`.
+An unattended upgrade correctly refused to remove the per-machine 0.1.9 install
+without elevation (Windows Installer error 1730). The application updater uses
+the normal `runas` UAC path; no elevation bypass was attempted. The controller
+was not enumerated by Windows during the final launch, so this change does not
+add a new physical-controller verification claim.

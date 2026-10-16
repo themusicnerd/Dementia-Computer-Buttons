@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.IO;
+using System.Net.Http;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -10,6 +12,10 @@ using DementiaComputerButtons.Core.Services;
 using Microsoft.Win32;
 using Forms = System.Windows.Forms;
 using WpfApplication = System.Windows.Application;
+using Brushes = System.Windows.Media.Brushes;
+using Color = System.Windows.Media.Color;
+using Pen = System.Windows.Media.Pen;
+using Point = System.Windows.Point;
 
 namespace DementiaComputerButtons.Infrastructure;
 
@@ -22,6 +28,7 @@ public sealed class WindowsWallpaperService : IWallpaperService
     private readonly IConfigurationService _configuration;
     private readonly ILoggingService _logging;
     private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly HttpClient _http = new();
     private readonly string _outputDirectory = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "DementiaComputerButtons", "wallpaper");
@@ -30,11 +37,15 @@ public sealed class WindowsWallpaperService : IWallpaperService
     private System.Threading.Timer? _rescanTimer;
     private System.Threading.Timer? _availabilityTimer;
     private bool _disposed;
+    private DateTime _lastGeocodeRequestUtc = DateTime.MinValue;
 
     public WindowsWallpaperService(IConfigurationService configuration, ILoggingService logging)
     {
         _configuration = configuration;
         _logging = logging;
+        _http.Timeout = TimeSpan.FromSeconds(12);
+        _http.DefaultRequestHeaders.UserAgent.ParseAdd(
+            "DementiaComputerButtons/0.1.10 (+https://github.com/themusicnerd/Dementia-Computer-Buttons)");
         Current = new(false, "Wallpaper rotation is disabled", null, null, 0);
     }
 
@@ -156,6 +167,9 @@ public sealed class WindowsWallpaperService : IWallpaperService
     {
         Directory.CreateDirectory(_outputDirectory);
         var outputPath = Path.Combine(_outputDirectory, "current-wallpaper.jpg");
+        var location = settings.ShowLocation && metadata.Latitude is not null && metadata.Longitude is not null
+            ? await GetLocationOverlayAsync(metadata.Latitude.Value, metadata.Longitude.Value, cancellationToken).ConfigureAwait(false)
+            : null;
         var dispatcher = WpfApplication.Current?.Dispatcher ?? throw new InvalidOperationException("The Windows dispatcher is not available.");
         await dispatcher.InvokeAsync(() =>
         {
@@ -175,7 +189,7 @@ public sealed class WindowsWallpaperService : IWallpaperService
                 var drawWidth = bitmap.PixelWidth * scale;
                 var drawHeight = bitmap.PixelHeight * scale;
                 drawing.DrawImage(bitmap, new Rect((width - drawWidth) / 2, (height - drawHeight) / 2, drawWidth, drawHeight));
-                DrawOverlay(drawing, width, metadata, settings);
+                DrawOverlay(drawing, width, height, metadata, settings, location);
             }
             var rendered = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
             rendered.Render(visual);
@@ -195,43 +209,164 @@ public sealed class WindowsWallpaperService : IWallpaperService
         return outputPath;
     }
 
-    private static void DrawOverlay(DrawingContext drawing, int width, PhotoMetadata metadata, WallpaperConfiguration settings)
+    private static void DrawOverlay(DrawingContext drawing, int width, int height, PhotoMetadata metadata,
+        WallpaperConfiguration settings, LocationOverlay? location)
     {
-        var lines = new List<string>();
         if (settings.ShowCaptureDate)
         {
-            string date;
+            string date, time;
             try { date = metadata.TakenAt.ToString(settings.DateFormat, CultureInfo.CurrentCulture); }
-            catch (FormatException) { date = metadata.TakenAt.ToString("dddd, dd MMMM yyyy  h:mm tt", CultureInfo.CurrentCulture); }
-            lines.Add(date);
+            catch (FormatException) { date = metadata.TakenAt.ToString("dd MMMM yyyy", CultureInfo.CurrentCulture); }
+            try { time = metadata.TakenAt.ToString(settings.TimeFormat, CultureInfo.CurrentCulture); }
+            catch (FormatException) { time = metadata.TakenAt.ToString("h:mm tt", CultureInfo.CurrentCulture); }
+            DrawShadowedText(drawing, $"{metadata.TakenAt:dddd}\n{date}\n{time}", width - 48, 36, 48, TextAlignment.Right);
         }
-        if (settings.ShowLocation && metadata.Latitude is not null && metadata.Longitude is not null)
-            lines.Add($"📍  {FormatCoordinate(metadata.Latitude.Value, 'N', 'S')}  {FormatCoordinate(metadata.Longitude.Value, 'E', 'W')}");
-        if (lines.Count == 0) return;
 
+        if (location is null) return;
+        const double mapSize = 300;
+        var mapLeft = width - mapSize - 48;
+        var mapTop = height - mapSize - 112;
+        var mapRect = new Rect(mapLeft, mapTop, mapSize, mapSize);
+        drawing.DrawRoundedRectangle(new SolidColorBrush(Color.FromArgb(205, 245, 245, 245)),
+            new Pen(new SolidColorBrush(Color.FromArgb(220, 255, 255, 255)), 3), mapRect, 8, 8);
+        var map = location.GetMap();
+        if (map is not null)
+            drawing.DrawImage(map, new Rect(mapLeft + 3, mapTop + 3, mapSize - 6, mapSize - 6));
+        else
+            DrawShadowedText(drawing, "MAP UNAVAILABLE", mapLeft + mapSize / 2, mapTop + mapSize / 2 - 14,
+                20, TextAlignment.Center);
+
+        var pinX = mapLeft + 3 + (mapSize - 6) * location.PinX;
+        var pinY = mapTop + 3 + (mapSize - 6) * location.PinY;
+        var pinBrush = new SolidColorBrush(Color.FromRgb(220, 28, 28));
+        drawing.DrawEllipse(pinBrush, new Pen(Brushes.White, 3), new Point(pinX, pinY - 9), 10, 10);
+        var pin = new StreamGeometry();
+        using (var context = pin.Open())
+        {
+            context.BeginFigure(new Point(pinX - 7, pinY - 4), true, true);
+            context.LineTo(new Point(pinX + 7, pinY - 4), true, false);
+            context.LineTo(new Point(pinX, pinY + 12), true, false);
+        }
+        pin.Freeze();
+        drawing.DrawGeometry(pinBrush, null, pin);
+        DrawOutlinedSmallText(drawing, "© OpenStreetMap contributors", mapLeft + 8, mapTop + mapSize - 24);
+        DrawShadowedText(drawing, location.DisplayName, width - 48, height - 88, 35, TextAlignment.Right);
+    }
+
+    private static void DrawShadowedText(DrawingContext drawing, string content, double anchorX, double y,
+        double fontSize, TextAlignment alignment)
+    {
         var family = new System.Windows.Media.FontFamily(
             new Uri("pack://application:,,,/"), "./Assets/Fonts/#Google Sans Flex");
         var typeface = new Typeface(family, FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal);
-        var fontSize = Math.Clamp(width / 45d, 28d, 48d);
-        var content = string.Join(Environment.NewLine, lines);
-        var text = CreateText(content, typeface, fontSize, System.Windows.Media.Brushes.White);
-        var origin = new System.Windows.Point(width - 48 - text.WidthIncludingTrailingWhitespace, 42);
-        var glow = new SolidColorBrush(System.Windows.Media.Color.FromArgb(125, 0, 0, 0));
+        var origin = new Point(anchorX, y);
+        var glow = new SolidColorBrush(Color.FromArgb(35, 0, 0, 0));
+        var shadow = new SolidColorBrush(Color.FromArgb(150, 0, 0, 0));
         glow.Freeze();
-        foreach (var offset in new[] { new Vector(-2, 0), new Vector(2, 0), new Vector(0, -2), new Vector(0, 2), new Vector(-2, -2), new Vector(2, 2) })
-            drawing.DrawText(CreateText(content, typeface, fontSize, glow), origin + offset);
-        var shadow = new SolidColorBrush(System.Windows.Media.Color.FromArgb(210, 0, 0, 0));
         shadow.Freeze();
-        drawing.DrawText(CreateText(content, typeface, fontSize, shadow), origin + new Vector(5, 7));
+        for (var radius = 3; radius <= 12; radius += 3)
+            for (var angle = 0; angle < 360; angle += 30)
+            {
+                var radians = angle * Math.PI / 180d;
+                var blurred = CreateText(content, typeface, fontSize, glow);
+                blurred.TextAlignment = alignment;
+                drawing.DrawText(blurred, origin + new Vector(Math.Cos(radians) * radius, Math.Sin(radians) * radius));
+            }
+        var drop = CreateText(content, typeface, fontSize, shadow);
+        drop.TextAlignment = alignment;
+        drawing.DrawText(drop, origin + new Vector(7, 9));
+        var text = CreateText(content, typeface, fontSize, Brushes.White);
+        text.TextAlignment = alignment;
         drawing.DrawText(text, origin);
+    }
+
+    private static void DrawOutlinedSmallText(DrawingContext drawing, string content, double x, double y)
+    {
+        var typeface = new Typeface("Segoe UI");
+        var dark = CreateText(content, typeface, 12, Brushes.Black);
+        var light = CreateText(content, typeface, 12, Brushes.White);
+        dark.TextAlignment = TextAlignment.Left;
+        light.TextAlignment = TextAlignment.Left;
+        foreach (var offset in new[] { new Vector(-1, 0), new Vector(1, 0), new Vector(0, -1), new Vector(0, 1) })
+            drawing.DrawText(dark, new Point(x, y) + offset);
+        drawing.DrawText(light, new Point(x, y));
     }
 
     private static FormattedText CreateText(string content, Typeface typeface, double fontSize, System.Windows.Media.Brush brush) =>
         new(content, CultureInfo.CurrentCulture, System.Windows.FlowDirection.LeftToRight, typeface, fontSize, brush, 1.0)
         { TextAlignment = TextAlignment.Right, LineHeight = fontSize * 1.28 };
 
-    private static string FormatCoordinate(double value, char positive, char negative) =>
-        $"{Math.Abs(value):0.0000}° {(value >= 0 ? positive : negative)}";
+    private async Task<LocationOverlay> GetLocationOverlayAsync(double latitude, double longitude,
+        CancellationToken cancellationToken)
+    {
+        var cache = Path.Combine(_outputDirectory, "map-cache");
+        Directory.CreateDirectory(cache);
+        var key = $"{latitude:F4}_{longitude:F4}".Replace('-', 'm').Replace('.', '_');
+        var namePath = Path.Combine(cache, key + ".txt");
+        var displayName = File.Exists(namePath)
+            ? (await File.ReadAllTextAsync(namePath, cancellationToken).ConfigureAwait(false)).Trim()
+            : string.Empty;
+        if (string.IsNullOrWhiteSpace(displayName))
+        {
+            try
+            {
+                var remaining = TimeSpan.FromSeconds(1) - (DateTime.UtcNow - _lastGeocodeRequestUtc);
+                if (remaining > TimeSpan.Zero) await Task.Delay(remaining, cancellationToken).ConfigureAwait(false);
+                _lastGeocodeRequestUtc = DateTime.UtcNow;
+                var url = FormattableString.Invariant(
+                    $"https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat={latitude:F6}&lon={longitude:F6}&zoom=14&addressdetails=1");
+                using var response = await _http.GetAsync(url, cancellationToken).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
+                using var json = JsonDocument.Parse(await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false));
+                displayName = ReadSuburb(json.RootElement) ?? string.Empty;
+                if (!string.IsNullOrWhiteSpace(displayName))
+                    await File.WriteAllTextAsync(namePath, displayName, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                _logging.Warning("wallpaper_geocode_failed", exception.Message);
+            }
+        }
+        if (string.IsNullOrWhiteSpace(displayName)) displayName = $"{latitude:0.0000}, {longitude:0.0000}";
+
+        const int zoom = 14;
+        var n = Math.Pow(2, zoom);
+        var safeLatitude = Math.Clamp(latitude, -85.05112878, 85.05112878);
+        var worldX = (longitude + 180d) / 360d * n;
+        var radians = safeLatitude * Math.PI / 180d;
+        var worldY = (1d - Math.Log(Math.Tan(radians) + 1d / Math.Cos(radians)) / Math.PI) / 2d * n;
+        var tileX = Math.Clamp((int)Math.Floor(worldX), 0, (int)n - 1);
+        var tileY = Math.Clamp((int)Math.Floor(worldY), 0, (int)n - 1);
+        var tilePath = Path.Combine(cache, $"osm_{zoom}_{tileX}_{tileY}.png");
+        byte[]? bytes = null;
+        try
+        {
+            if (!File.Exists(tilePath) || DateTime.UtcNow - File.GetLastWriteTimeUtc(tilePath) > TimeSpan.FromDays(30))
+            {
+                bytes = await _http.GetByteArrayAsync(
+                    $"https://tile.openstreetmap.org/{zoom}/{tileX}/{tileY}.png", cancellationToken).ConfigureAwait(false);
+                await File.WriteAllBytesAsync(tilePath, bytes, cancellationToken).ConfigureAwait(false);
+            }
+            else bytes = await File.ReadAllBytesAsync(tilePath, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            _logging.Warning("wallpaper_map_failed", exception.Message);
+            if (File.Exists(tilePath))
+                bytes = await File.ReadAllBytesAsync(tilePath, cancellationToken).ConfigureAwait(false);
+        }
+        return new(displayName, bytes, Math.Clamp(worldX - Math.Floor(worldX), 0, 1),
+            Math.Clamp(worldY - Math.Floor(worldY), 0, 1));
+    }
+
+    private static string? ReadSuburb(JsonElement root)
+    {
+        if (!root.TryGetProperty("address", out var address)) return null;
+        foreach (var field in new[] { "suburb", "neighbourhood", "quarter", "city_district", "town", "village", "city", "municipality", "county" })
+            if (address.TryGetProperty(field, out var value) && !string.IsNullOrWhiteSpace(value.GetString()))
+                return value.GetString();
+        return null;
+    }
 
     private static PhotoMetadata ReadMetadata(string path)
     {
@@ -314,10 +449,22 @@ public sealed class WindowsWallpaperService : IWallpaperService
     {
         _disposed = true;
         DisposeScheduling();
+        _http.Dispose();
         return ValueTask.CompletedTask;
     }
 
     private sealed record PhotoMetadata(DateTime TakenAt, double? Latitude, double? Longitude);
+    private sealed record LocationOverlay(string DisplayName, byte[]? MapBytes, double PinX, double PinY)
+    {
+        public BitmapSource? GetMap()
+        {
+            if (MapBytes is null) return null;
+            using var stream = new MemoryStream(MapBytes);
+            var bitmap = BitmapFrame.Create(stream, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
+            bitmap.Freeze();
+            return bitmap;
+        }
+    }
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]

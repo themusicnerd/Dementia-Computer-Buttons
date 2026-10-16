@@ -111,9 +111,10 @@ Only photographs belonging to the newest capture date are included in the
 rotation. EXIF capture time is preferred; the file modification time is used
 when a photograph has no capture timestamp. The interval is configurable from
 1 to 1440 minutes, subfolders are optional, and **Show next now** advances
-immediately. A white date/time overlay is rendered at the top right with a soft
-outline and directional shadow. GPS coordinates receive a location-pin overlay
-when the source file contains readable EXIF GPS data. The official OFL-licensed
+immediately. Separate day, date and time lines are rendered at the top right
+with a soft glow and directional shadow. When readable EXIF GPS data is present,
+a square OpenStreetMap view with a red pin appears above the suburb name at the
+bottom right. Map tiles and suburb lookups are cached for offline reuse. The official OFL-licensed
 Google Sans Flex variable font and its licence are bundled with the application.
 
 Google Drive for Desktop appears in Required applications and can be installed
@@ -164,7 +165,7 @@ Create the self-contained application and Windows Installer package:
 ```powershell
 .\tools\Publish-DadConsole.ps1
 .\tools\Build-Msi.ps1
-msiexec.exe /i .\dist\DementiaComputerButtons-0.1.9-x64.msi
+msiexec.exe /i .\dist\DementiaComputerButtons-0.1.10-x64.msi
 ```
 
 The MSI is self-contained and creates an all-users Start Menu shortcut. The

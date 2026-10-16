@@ -113,7 +113,8 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
     private bool _wallpaperIncludeSubfolders = true;
     private bool _wallpaperShowCaptureDate = true;
     private bool _wallpaperShowLocation = true;
-    private string _wallpaperDateFormat = "dddd, dd MMMM yyyy  h:mm tt";
+    private string _wallpaperDateFormat = "dd MMMM yyyy";
+    private string _wallpaperTimeFormat = "h:mm tt";
     private string _wallpaperStatus = "Wallpaper rotation is disabled";
 
     public DiagnosticsViewModel(IArduinoService arduino, IVolumeService volume, ISystemStateService state, IButtonActionService actions,
@@ -363,6 +364,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
     public bool WallpaperShowCaptureDate { get => _wallpaperShowCaptureDate; set => Set(ref _wallpaperShowCaptureDate, value); }
     public bool WallpaperShowLocation { get => _wallpaperShowLocation; set => Set(ref _wallpaperShowLocation, value); }
     public string WallpaperDateFormat { get => _wallpaperDateFormat; set => Set(ref _wallpaperDateFormat, value); }
+    public string WallpaperTimeFormat { get => _wallpaperTimeFormat; set => Set(ref _wallpaperTimeFormat, value); }
     public string WallpaperStatus { get => _wallpaperStatus; private set => Set(ref _wallpaperStatus, value); }
     public bool VolumeDownLightOn => PreviewLight(0);
     public bool VolumeUpLightOn => PreviewLight(1);
@@ -570,7 +572,9 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
             _configuration.Current.Wallpaper.ShowCaptureDate = WallpaperShowCaptureDate;
             _configuration.Current.Wallpaper.ShowLocation = WallpaperShowLocation;
             _configuration.Current.Wallpaper.DateFormat = string.IsNullOrWhiteSpace(WallpaperDateFormat)
-                ? "dddd, dd MMMM yyyy  h:mm tt" : WallpaperDateFormat.Trim();
+                ? "dd MMMM yyyy" : WallpaperDateFormat.Trim();
+            _configuration.Current.Wallpaper.TimeFormat = string.IsNullOrWhiteSpace(WallpaperTimeFormat)
+                ? "h:mm tt" : WallpaperTimeFormat.Trim();
             _configuration.Current.Startup.StartWithWindows = StartWithWindows;
             _configuration.Current.ApplianceMode.ProtectSession = ProtectSession;
             _configuration.Current.Controller.LongPressMilliseconds = (int)Math.Clamp(Math.Round(LongPressMilliseconds), 500, 10000);
@@ -707,6 +711,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         WallpaperShowCaptureDate = settings.ShowCaptureDate;
         WallpaperShowLocation = settings.ShowLocation;
         WallpaperDateFormat = settings.DateFormat;
+        WallpaperTimeFormat = settings.TimeFormat;
     }
 
     private void ApplyWallpaperStatus(WallpaperSnapshot snapshot)

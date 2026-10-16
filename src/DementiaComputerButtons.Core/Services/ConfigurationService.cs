@@ -185,12 +185,21 @@ public sealed class ConfigurationService(string path, ILoggingService logging) :
             configuration.Wallpaper.RotationMinutes = 15;
         }
         configuration.Wallpaper.SourceFolder ??= string.Empty;
-        configuration.Wallpaper.DateFormat ??= "dddd, dd MMMM yyyy  h:mm tt";
+        configuration.Wallpaper.DateFormat ??= "dd MMMM yyyy";
+        configuration.Wallpaper.TimeFormat ??= "h:mm tt";
+        if (configuration.Wallpaper.DateFormat == "dddd, dd MMMM yyyy  h:mm tt")
+            configuration.Wallpaper.DateFormat = "dd MMMM yyyy";
         try { _ = DateTime.Now.ToString(configuration.Wallpaper.DateFormat); }
         catch (FormatException)
         {
-            _warnings.Add("Wallpaper date format is invalid; using Australian date and 12-hour time.");
-            configuration.Wallpaper.DateFormat = "dddd, dd MMMM yyyy  h:mm tt";
+            _warnings.Add("Wallpaper date format is invalid; using Australian date order.");
+            configuration.Wallpaper.DateFormat = "dd MMMM yyyy";
+        }
+        try { _ = DateTime.Now.ToString(configuration.Wallpaper.TimeFormat); }
+        catch (FormatException)
+        {
+            _warnings.Add("Wallpaper time format is invalid; using 12-hour time.");
+            configuration.Wallpaper.TimeFormat = "h:mm tt";
         }
         configuration.DisplaySchedule.WakePromptText ??= string.Empty;
         if (configuration.DisplaySchedule.WakePromptText.Length > 80)

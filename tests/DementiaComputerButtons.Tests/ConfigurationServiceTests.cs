@@ -175,6 +175,8 @@ public sealed class ConfigurationServiceTests
             service.Current.Wallpaper.RotationMinutes = 7;
             service.Current.Wallpaper.IncludeSubfolders = false;
             service.Current.Wallpaper.ShowLocation = false;
+            service.Current.Wallpaper.DateFormat = "dd/MM/yyyy";
+            service.Current.Wallpaper.TimeFormat = "HH:mm";
             await service.SaveAsync();
 
             var reloaded = new ConfigurationService(path, new TestLog());
@@ -185,6 +187,8 @@ public sealed class ConfigurationServiceTests
             Assert.Equal(7, reloaded.Current.Wallpaper.RotationMinutes);
             Assert.False(reloaded.Current.Wallpaper.IncludeSubfolders);
             Assert.False(reloaded.Current.Wallpaper.ShowLocation);
+            Assert.Equal("dd/MM/yyyy", reloaded.Current.Wallpaper.DateFormat);
+            Assert.Equal("HH:mm", reloaded.Current.Wallpaper.TimeFormat);
         }
         finally { File.Delete(path); }
     }

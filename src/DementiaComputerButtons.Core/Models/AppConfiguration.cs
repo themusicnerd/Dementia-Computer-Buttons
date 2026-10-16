@@ -42,7 +42,8 @@ public sealed class WallpaperConfiguration
     public bool IncludeSubfolders { get; set; } = true;
     public bool ShowCaptureDate { get; set; } = true;
     public bool ShowLocation { get; set; } = true;
-    public string DateFormat { get; set; } = "dddd, dd MMMM yyyy  h:mm tt";
+    public string DateFormat { get; set; } = "dd MMMM yyyy";
+    public string TimeFormat { get; set; } = "h:mm tt";
 }
 
 public sealed class UpdateConfiguration
