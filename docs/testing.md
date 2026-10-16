@@ -184,3 +184,18 @@ Windows session ending also selects the clean shutdown path.
 The Release build completed with zero warnings and passed 53/53 automated tests.
 The 57,532,416-byte 0.1.4 MSI has SHA-256
 `032097D6E50EFE7EBB22095DDA2814518936956DD94534A142771AC0100685F9`.
+
+## 2026-10-16 centred audio-route OSD
+
+Version 0.1.8 adds dedicated vector speaker and headphone icons to the
+speaker/headphone profile switch. A successful route change displays its icon
+and label in the centre of the screen for four seconds. Endpoint volume events
+are suppressed during that interval so Windows cannot replace the route card
+with the normal bottom-screen volume bar. Failed switching still reports an
+explicit audio-settings error instead of announcing the requested route.
+
+A live Windows test switched to the headphone profile, captured and visually
+checked the centred headphone card, then switched a second time to restore the
+original profile. The Release build completed with zero warnings and passed
+53/53 automated tests. The 57,495,552-byte 0.1.8 MSI has SHA-256
+`42E2F958035577F5BBED0E5E76FA45E00880EDEBA6AA633D032CCC717889DAE0`.
