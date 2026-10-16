@@ -108,10 +108,17 @@ internal sealed class TestOsd : IOnScreenDisplayService
     public string? Headline { get; private set; }
     public string? Detail { get; private set; }
     public TimeSpan? Duration { get; private set; }
+    public bool? Headphones { get; private set; }
     public void ShowMessage(string headline, string? detail = null, TimeSpan? duration = null)
     {
         Headline = headline;
         Detail = detail;
+        Duration = duration;
+    }
+    public void ShowAudioRoute(bool headphones, TimeSpan? duration = null)
+    {
+        Headphones = headphones;
+        Headline = headphones ? "HEADPHONES" : "SPEAKERS";
         Duration = duration;
     }
 }

@@ -8,6 +8,8 @@ namespace DementiaComputerButtons;
 
 public partial class VolumeOverlayWindow : Window, IOnScreenDisplayService
 {
+    private const double StandardWidth = 760;
+    private const double StandardHeight = 155;
     private const int ExtendedStyleIndex = -20;
     private const int NoActivate = 0x08000000;
     private const int ToolWindow = 0x00000080;
@@ -32,6 +34,8 @@ public partial class VolumeOverlayWindow : Window, IOnScreenDisplayService
         if (DateTimeOffset.UtcNow < _messageVisibleUntilUtc) return;
 
         var value = Math.Clamp((int)Math.Round(percent), 0, 100);
+        Width = StandardWidth;
+        Height = StandardHeight;
         PercentText.Text = $"{value}%";
         MuteText.Text = muted ? "SPEAKERS MUTED" : "VOLUME";
         MuteText.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
@@ -39,6 +43,7 @@ public partial class VolumeOverlayWindow : Window, IOnScreenDisplayService
         PercentText.Visibility = Visibility.Visible;
         VolumeBar.Visibility = Visibility.Visible;
         StatusDetailText.Visibility = Visibility.Collapsed;
+        AudioRoutePanel.Visibility = Visibility.Collapsed;
         FilledColumn.Width = new GridLength(muted ? 0 : Math.Max(0.01, value), GridUnitType.Star);
         EmptyColumn.Width = new GridLength(muted ? 100 : Math.Max(0.01, 100 - value), GridUnitType.Star);
         PositionAtBottom();
@@ -59,6 +64,8 @@ public partial class VolumeOverlayWindow : Window, IOnScreenDisplayService
         var visibleDuration = duration.GetValueOrDefault(DefaultDuration);
         if (visibleDuration <= TimeSpan.Zero) visibleDuration = DefaultDuration;
         _messageVisibleUntilUtc = DateTimeOffset.UtcNow + visibleDuration;
+        Width = StandardWidth;
+        Height = StandardHeight;
         MuteText.Text = headline.ToUpperInvariant();
         MuteText.HorizontalAlignment = System.Windows.HorizontalAlignment.Center;
         MuteText.TextAlignment = TextAlignment.Center;
@@ -66,7 +73,37 @@ public partial class VolumeOverlayWindow : Window, IOnScreenDisplayService
         VolumeBar.Visibility = Visibility.Collapsed;
         StatusDetailText.Text = detail?.ToUpperInvariant() ?? string.Empty;
         StatusDetailText.Visibility = string.IsNullOrWhiteSpace(detail) ? Visibility.Collapsed : Visibility.Visible;
+        AudioRoutePanel.Visibility = Visibility.Collapsed;
         PositionAtBottom();
+        if (!IsVisible) Show();
+        Topmost = true;
+        _hideTimer.Interval = visibleDuration;
+        _hideTimer.Stop();
+        _hideTimer.Start();
+    }
+
+    public void ShowAudioRoute(bool headphones, TimeSpan? duration = null)
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.BeginInvoke(() => ShowAudioRoute(headphones, duration));
+            return;
+        }
+
+        var visibleDuration = duration.GetValueOrDefault(DefaultDuration);
+        if (visibleDuration <= TimeSpan.Zero) visibleDuration = DefaultDuration;
+        Width = 520;
+        Height = 340;
+        _messageVisibleUntilUtc = DateTimeOffset.UtcNow + visibleDuration;
+        MuteText.Text = string.Empty;
+        PercentText.Visibility = Visibility.Collapsed;
+        VolumeBar.Visibility = Visibility.Collapsed;
+        StatusDetailText.Visibility = Visibility.Collapsed;
+        SpeakerIcon.Visibility = headphones ? Visibility.Collapsed : Visibility.Visible;
+        HeadphonesIcon.Visibility = headphones ? Visibility.Visible : Visibility.Collapsed;
+        AudioRouteText.Text = headphones ? "HEADPHONES" : "SPEAKERS";
+        AudioRoutePanel.Visibility = Visibility.Visible;
+        PositionAtCenter();
         if (!IsVisible) Show();
         Topmost = true;
         _hideTimer.Interval = visibleDuration;
@@ -79,6 +116,13 @@ public partial class VolumeOverlayWindow : Window, IOnScreenDisplayService
         var area = SystemParameters.WorkArea;
         Left = area.Left + (area.Width - Width) / 2;
         Top = area.Bottom - Height - 34;
+    }
+
+    private void PositionAtCenter()
+    {
+        var area = SystemParameters.WorkArea;
+        Left = area.Left + (area.Width - Width) / 2;
+        Top = area.Top + (area.Height - Height) / 2;
     }
 
     protected override void OnSourceInitialized(EventArgs e)

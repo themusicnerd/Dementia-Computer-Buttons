@@ -20,6 +20,25 @@
             </Grid>
             <TextBlock x:Name="StatusDetailText" Grid.Row="1" Visibility="Collapsed" Foreground="#FFE3F2FD"
                        FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <Grid x:Name="AudioRoutePanel" Grid.RowSpan="2" Visibility="Collapsed">
+                <Grid.RowDefinitions><RowDefinition Height="220"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <Viewbox x:Name="SpeakerIcon" Width="210" Height="190" HorizontalAlignment="Center">
+                    <Canvas Width="140" Height="120">
+                        <Path Fill="White" Data="M12,45 L42,45 L75,18 L75,102 L42,75 L12,75 Z"/>
+                        <Path Stroke="White" StrokeThickness="8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent" Data="M91,43 C105,53 105,67 91,77"/>
+                        <Path Stroke="White" StrokeThickness="8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent" Data="M107,27 C134,46 134,74 107,93"/>
+                    </Canvas>
+                </Viewbox>
+                <Viewbox x:Name="HeadphonesIcon" Width="220" Height="190" HorizontalAlignment="Center">
+                    <Canvas Width="140" Height="120">
+                        <Path Stroke="White" StrokeThickness="10" StrokeStartLineCap="Round" Fill="Transparent" Data="M20,67 C20,13 120,13 120,67"/>
+                        <Rectangle Canvas.Left="12" Canvas.Top="60" Width="27" Height="48" RadiusX="9" RadiusY="9" Fill="White"/>
+                        <Rectangle Canvas.Left="101" Canvas.Top="60" Width="27" Height="48" RadiusX="9" RadiusY="9" Fill="White"/>
+                    </Canvas>
+                </Viewbox>
+                <TextBlock x:Name="AudioRouteText" Grid.Row="1" Foreground="White" FontSize="34" FontWeight="Bold"
+                           HorizontalAlignment="Center" TextAlignment="Center"/>
+            </Grid>
         </Grid>
     </Border>
 </Window>

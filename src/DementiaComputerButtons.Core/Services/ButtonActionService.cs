@@ -156,13 +156,10 @@ public sealed class ButtonActionService(
                 }
                 else
                 {
-                    var switchingToSpeakers = audioRouting.SpeakersMuted;
+                    var switchingToHeadphones = !audioRouting.SpeakersMuted;
                     var osdDuration = TimeSpan.FromSeconds(4);
-                    osd.ShowMessage(switchingToSpeakers ? "TURNING ON SPEAKERS" : "SWITCHING TO HEADPHONES",
-                        switchingToSpeakers ? null : "PUT ON HEADPHONES", osdDuration);
                     if (await audioRouting.ToggleSpeakersAsync(cancellationToken).ConfigureAwait(false))
-                        osd.ShowMessage(switchingToSpeakers ? "SPEAKERS ON" : "HEADPHONES ON",
-                            switchingToSpeakers ? null : "SPEAKERS MUTED", osdDuration);
+                        osd.ShowAudioRoute(switchingToHeadphones, osdDuration);
                     else
                     {
                         osd.ShowMessage("AUDIO SWITCH FAILED", "CHECK AUDIO SETTINGS", osdDuration);

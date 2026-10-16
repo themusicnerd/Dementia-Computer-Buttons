@@ -51,8 +51,12 @@ public sealed class ButtonActionServiceTests
             new SystemStateService(new TestLog()), audio, new TestVlc(), new TestBrowser(), new TestCalls(), osd, new TestLog());
         await service.HandleAsync(new ButtonEvent("PANEL_8", "DOWN", 1));
         Assert.True(audio.SpeakersMuted);
-        Assert.Equal("HEADPHONES ON", osd.Headline);
+        Assert.True(osd.Headphones);
         Assert.Equal(TimeSpan.FromSeconds(4), osd.Duration);
+
+        await service.HandleAsync(new ButtonEvent("PANEL_8", "DOWN", 2));
+        Assert.False(audio.SpeakersMuted);
+        Assert.False(osd.Headphones);
     }
 
     [Fact]

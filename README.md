@@ -78,6 +78,8 @@ The setup page selects Edge or Chrome for both YouTube and Spotify. It also
 provides optional contact photos, configurable call names, speaker/headphone
 audio profiles, and a display blackout schedule such as 22:00–07:00. Calls wake
 the blacked-out display temporarily and take priority over managed media.
+Successful audio-profile changes show a large centred speaker or headphone icon;
+the ordinary master-volume bar remains at the bottom of the screen.
 Blackout can be fully black or show a configurable digital or analogue clock,
 day, date and instruction such as `PRESS A BUTTON TO BEGIN`. The operator can
 choose 12/24-hour time, date format, colour and brightness. During a scheduled
@@ -139,7 +141,7 @@ Create the self-contained application and Windows Installer package:
 ```powershell
 .\tools\Publish-DadConsole.ps1
 .\tools\Build-Msi.ps1
-msiexec.exe /i .\dist\DementiaComputerButtons-0.1.7-x64.msi
+msiexec.exe /i .\dist\DementiaComputerButtons-0.1.8-x64.msi
 ```
 
 The MSI is self-contained and creates an all-users Start Menu shortcut. The

@@ -41,6 +41,7 @@ public interface IButtonActionService
 public interface IOnScreenDisplayService
 {
     void ShowMessage(string headline, string? detail = null, TimeSpan? duration = null);
+    void ShowAudioRoute(bool headphones, TimeSpan? duration = null);
 }
 
 public interface IConfigurationService
