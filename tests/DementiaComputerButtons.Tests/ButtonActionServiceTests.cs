@@ -29,15 +29,30 @@ public sealed class ButtonActionServiceTests
     }
 
     [Theory]
-    [InlineData("LEFT", 48)]
-    [InlineData("RIGHT", 52)]
-    public async Task RepeatUsesSmallerHoldStep(string button, float expected)
+    [InlineData("LEFT", 45)]
+    [InlineData("RIGHT", 55)]
+    public async Task RepeatStaysOnConfiguredVolumeGrid(string button, float expected)
     {
         var volume = new TestVolume();
-        var configuration = new AppConfiguration { VolumeStepPercent = 5, VolumeHoldStepPercent = 2 };
+        var configuration = new AppConfiguration { VolumeStepPercent = 5 };
         var service = new ButtonActionService(volume, new TestConfiguration(configuration),
             new SystemStateService(new TestLog()), new TestAudioRouting(), new TestVlc(), new TestBrowser(), new TestCalls(), new TestOsd(), new TestLog());
         await service.HandleAsync(new ButtonEvent(button, "REPEAT", 600));
+        Assert.Equal(expected, volume.CurrentVolumePercent);
+    }
+
+    [Theory]
+    [InlineData("LEFT", 20)]
+    [InlineData("RIGHT", 25)]
+    public async Task VolumePressSnapsNonGridVolumeInPressedDirection(string button, float expected)
+    {
+        var volume = new TestVolume();
+        volume.SetVolume(23);
+        var service = new ButtonActionService(volume, new TestConfiguration(new AppConfiguration()),
+            new SystemStateService(new TestLog()), new TestAudioRouting(), new TestVlc(), new TestBrowser(), new TestCalls(), new TestOsd(), new TestLog());
+
+        await service.HandleAsync(new ButtonEvent(button, "DOWN", 1));
+
         Assert.Equal(expected, volume.CurrentVolumePercent);
     }
 

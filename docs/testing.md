@@ -199,3 +199,21 @@ checked the centred headphone card, then switched a second time to restore the
 original profile. The Release build completed with zero warnings and passed
 53/53 automated tests. The 57,495,552-byte 0.1.8 MSI has SHA-256
 `42E2F958035577F5BBED0E5E76FA45E00880EDEBA6AA633D032CCC717889DAE0`.
+
+## 2026-10-16 Google Drive wallpaper and tabbed console
+
+Version 0.1.9 adds a local Google Drive for Desktop wallpaper source, newest-day
+selection, configurable rotation, folder watching, EXIF date/GPS overlays,
+manual refresh/advance controls, and a Google Drive installation check. The
+engineering console was reorganised into six tabs with persistent Save, Export
+and Import controls. Volume actions now snap to the configured 5% grid in the
+direction pressed, including hold-repeat events.
+
+The full solution builds with zero warnings and all 66 automated tests pass.
+New tests cover newest-day photo selection, cycling and wrapping, persisted
+wallpaper settings, and directional volume snapping from off-grid values such
+as 23%. Google Drive for Desktop is not installed on this development machine,
+so live Drive synchronisation and a real-folder wallpaper rotation remain
+operator verification items. No claim is made that those external behaviours
+passed on this machine. The 59,273,216-byte 0.1.9 MSI has SHA-256
+`73FA2B116795CF9E2AAB4893F7C28C8A00475EEBBADA4DED5BC09554D1D4F96A`.

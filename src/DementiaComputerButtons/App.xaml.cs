@@ -111,6 +111,7 @@ public partial class App : WpfApplication
             logging.Error("microsip_integration_startup_failed", exception, exception.Message);
         }
         _host.Services.GetRequiredService<PanelLightingService>().Start();
+        _host.Services.GetRequiredService<IWallpaperService>().Start();
         _ = _host.Services.GetRequiredService<CallStatusWindow>();
         displaySchedule.Start();
         volume.Refresh();
@@ -215,6 +216,7 @@ public partial class App : WpfApplication
         services.AddSingleton<DisplayScheduleService>();
         services.AddSingleton<IDisplayScheduleService>(provider => provider.GetRequiredService<DisplayScheduleService>());
         services.AddSingleton<IIRService, IRService>();
+        services.AddSingleton<IWallpaperService, WindowsWallpaperService>();
         services.AddSingleton<PanelLightingService>();
         services.AddSingleton<IUserPromptService, UserPromptService>();
         services.AddSingleton<DiagnosticsViewModel>();
@@ -240,6 +242,7 @@ public partial class App : WpfApplication
             await _host.Services.GetRequiredService<ICallService>().EndCallAsync();
             await _host.Services.GetRequiredService<CallEventBridge>().DisposeAsync();
             await _host.Services.GetRequiredService<IArduinoService>().StopAsync();
+            await _host.Services.GetRequiredService<IWallpaperService>().DisposeAsync();
             await _host.StopAsync(TimeSpan.FromSeconds(2));
             _host.Dispose();
         }

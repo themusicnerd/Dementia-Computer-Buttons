@@ -128,6 +128,16 @@ public interface IFirmwareUpdateService
 }
 public interface IIRService { bool IsHardwareAvailable { get; } }
 
+public interface IWallpaperService : IAsyncDisposable
+{
+    WallpaperSnapshot Current { get; }
+    event EventHandler<WallpaperSnapshot>? StatusChanged;
+    void Start();
+    void ApplyConfiguration();
+    Task RefreshAsync(CancellationToken cancellationToken = default);
+    Task ShowNextAsync(CancellationToken cancellationToken = default);
+}
+
 public interface ILoggingService
 {
     void Information(string eventName, string message);

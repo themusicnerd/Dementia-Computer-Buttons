@@ -1,5 +1,12 @@
 namespace DementiaComputerButtons.Core.Models;
 
+public sealed record WallpaperSnapshot(
+    bool IsRunning,
+    string Status,
+    string? CurrentPhoto,
+    DateOnly? LatestDay,
+    int PhotosOnLatestDay);
+
 public enum DadConsoleState
 {
     Home,

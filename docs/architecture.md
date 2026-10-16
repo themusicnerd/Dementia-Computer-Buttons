@@ -44,6 +44,9 @@ blue and displays an X while continuing to parse serial input. All timing uses
 - `IAudioRoutingService`, `IVlcService`, `IBrowserService`, `ICallService` and
   `IIRService`: isolated integration seams. Missing integrations produce logged
   errors without crashing the controller.
+- `IWallpaperService`: watches a local Google Drive folder, selects the newest
+  capture day, renders overlays, rotates photographs and asks Windows to apply
+  the generated wallpaper.
 
 `IAudioRoutingService` applies a complete speaker or headphone profile: default
 render endpoint plus default capture endpoint. `ICallService` receives MicroSIP
@@ -75,6 +78,21 @@ Configuration import/export stays behind `IConfigurationService`. Export writes
 the complete human-readable JSON model. Import deserializes and validates a
 candidate before replacing the live model, then atomically saves the accepted
 configuration. Malformed input never replaces working settings.
+
+`WindowsWallpaperService` deliberately consumes a normal local folder rather
+than owning Google credentials. Google Drive for Desktop is responsible for
+synchronisation and offline availability. A file watcher triggers a debounced
+rescan when Drive changes the folder; a periodic timer provides both rotation
+and recovery if the virtual drive temporarily disappears. Image decoding uses
+read/delete sharing so Drive can finish replacing files without deadlocking the
+application. Failed or partially hydrated images are skipped and logged rather
+than stopping the rotation.
+
+`LatestDayPhotoSelector` is platform-independent and selects all photographs
+whose EXIF capture date matches the newest date. Selection order is capture time
+then path, and the next index wraps. The Windows service composes a screen-sized
+JPEG in `%LOCALAPPDATA%\DementiaComputerButtons\wallpaper`, applies Fill mode,
+and sets it through the Windows desktop setting call.
 
 `FirmwareUpdateService` requires a live KS0501 handshake and captures that
 specific COM port before stopping serial discovery. It verifies the bundled HEX

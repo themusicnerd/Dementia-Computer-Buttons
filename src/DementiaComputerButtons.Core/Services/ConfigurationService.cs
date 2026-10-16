@@ -109,6 +109,7 @@ public sealed class ConfigurationService(string path, ILoggingService logging) :
         configuration.AudioRouting ??= new AudioRoutingConfiguration();
         configuration.Lighting ??= new LightingConfiguration();
         configuration.DisplaySchedule ??= new DisplayScheduleConfiguration();
+        configuration.Wallpaper ??= new WallpaperConfiguration();
         configuration.Startup ??= new StartupConfiguration();
         configuration.ApplianceMode ??= new ApplianceModeConfiguration();
         configuration.Updates ??= new UpdateConfiguration();
@@ -117,11 +118,6 @@ public sealed class ConfigurationService(string path, ILoggingService logging) :
         {
             _warnings.Add("VolumeStepPercent must be 1..25; using 5.");
             configuration.VolumeStepPercent = 5;
-        }
-        if (configuration.VolumeHoldStepPercent is < 1 or > 10)
-        {
-            _warnings.Add("VolumeHoldStepPercent must be 1..10; using 2.");
-            configuration.VolumeHoldStepPercent = 2;
         }
         if (configuration.Controller.BaudRate != 115200)
         {
@@ -182,6 +178,19 @@ public sealed class ConfigurationService(string path, ILoggingService logging) :
         {
             _warnings.Add("Blackout clock brightness must be 1..100; using 65.");
             configuration.DisplaySchedule.ClockBrightnessPercent = 65;
+        }
+        if (configuration.Wallpaper.RotationMinutes is < 1 or > 1440)
+        {
+            _warnings.Add("Wallpaper rotation must be 1..1440 minutes; using 15.");
+            configuration.Wallpaper.RotationMinutes = 15;
+        }
+        configuration.Wallpaper.SourceFolder ??= string.Empty;
+        configuration.Wallpaper.DateFormat ??= "dddd, dd MMMM yyyy  h:mm tt";
+        try { _ = DateTime.Now.ToString(configuration.Wallpaper.DateFormat); }
+        catch (FormatException)
+        {
+            _warnings.Add("Wallpaper date format is invalid; using Australian date and 12-hour time.");
+            configuration.Wallpaper.DateFormat = "dddd, dd MMMM yyyy  h:mm tt";
         }
         configuration.DisplaySchedule.WakePromptText ??= string.Empty;
         if (configuration.DisplaySchedule.WakePromptText.Length > 80)

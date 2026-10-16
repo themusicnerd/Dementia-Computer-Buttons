@@ -93,14 +93,14 @@ public sealed class ButtonActionService(
         if (!isRepeat)
             logging.Information("activity_action", DescribeAction(action));
 
-        var step = isRepeat ? configuration.Current.VolumeHoldStepPercent : configuration.Current.VolumeStepPercent;
+        var step = configuration.Current.VolumeStepPercent;
         switch (action.ToUpperInvariant())
         {
             case "VOLUME_DOWN":
-                volume.ChangeBy(-step);
+                volume.SetVolume(VolumeStepCalculator.Next(volume.CurrentVolumePercent, -1, step));
                 break;
             case "VOLUME_UP":
-                volume.ChangeBy(step);
+                volume.SetVolume(VolumeStepCalculator.Next(volume.CurrentVolumePercent, 1, step));
                 break;
             case "MUTE":
                 volume.ToggleMute();

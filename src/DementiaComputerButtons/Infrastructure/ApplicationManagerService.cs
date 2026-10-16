@@ -17,6 +17,7 @@ public sealed class ApplicationManagerService(ILoggingService logging) : IApplic
         new("zoom", "Zoom Workplace", "Zoom.Zoom", FindZoom),
         new("microsip", "MicroSIP", "MicroSIP.MicroSIP", FindMicroSip),
         new("spotify", "Spotify", "Spotify.Spotify", FindSpotify),
+        new("google-drive", "Google Drive for Desktop", "Google.GoogleDrive", FindGoogleDrive),
         new("arduino-cli", "Arduino CLI", "ArduinoSA.CLI", FindArduinoCli)
     ];
 
@@ -75,6 +76,16 @@ public sealed class ApplicationManagerService(ILoggingService logging) : IApplic
     private static string? FindZoom() => Existing(Roaming("Zoom", "bin", "Zoom.exe"), Pf("Zoom", "bin", "Zoom.exe"), Pfx86("Zoom", "bin", "Zoom.exe"));
     private static string? FindMicroSip() => Existing(Pf("MicroSIP", "microsip.exe"), Pfx86("MicroSIP", "microsip.exe"), Local("MicroSIP", "microsip.exe"));
     private static string? FindSpotify() => Existing(Roaming("Spotify", "Spotify.exe"));
+    private static string? FindGoogleDrive()
+    {
+        var root = Pf("Google", "Drive File Stream");
+        if (!Directory.Exists(root)) return null;
+        try
+        {
+            return Directory.EnumerateFiles(root, "GoogleDriveFS.exe", SearchOption.AllDirectories).FirstOrDefault();
+        }
+        catch { return null; }
+    }
     private static string? FindArduinoCli() => Existing(
         Pf("Arduino CLI", "arduino-cli.exe"),
         Local("Microsoft", "WinGet", "Links", "arduino-cli.exe"),

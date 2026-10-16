@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Input;
 using DementiaComputerButtons.Core.Abstractions;
 using DementiaComputerButtons.Core.Models;
+using DementiaComputerButtons.Core.Services;
 using DementiaComputerButtons.Infrastructure;
 using Microsoft.Win32;
 
@@ -44,6 +45,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
     private readonly IApplianceModeService _applianceMode;
     private readonly IUpdateService _updates;
     private readonly IFirmwareUpdateService _firmwareUpdate;
+    private readonly IWallpaperService _wallpaper;
     private readonly DisplayScheduleService _displaySchedule;
     private readonly PanelLightingService _panelLighting;
     private readonly IUserPromptService _prompts;
@@ -105,6 +107,14 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
     private string _firmwareUpdateStatus = "Not checked";
     private double _panelBrightness = 100;
     private double _longPressMilliseconds = 1500;
+    private bool _wallpaperEnabled;
+    private string _wallpaperSourceFolder = string.Empty;
+    private double _wallpaperRotationMinutes = 15;
+    private bool _wallpaperIncludeSubfolders = true;
+    private bool _wallpaperShowCaptureDate = true;
+    private bool _wallpaperShowLocation = true;
+    private string _wallpaperDateFormat = "dddd, dd MMMM yyyy  h:mm tt";
+    private string _wallpaperStatus = "Wallpaper rotation is disabled";
 
     public DiagnosticsViewModel(IArduinoService arduino, IVolumeService volume, ISystemStateService state, IButtonActionService actions,
         IConfigurationService configuration,
@@ -115,6 +125,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         IApplianceModeService applianceMode,
         IUpdateService updates,
         IFirmwareUpdateService firmwareUpdate,
+        IWallpaperService wallpaper,
         DisplayScheduleService displaySchedule,
         PanelLightingService panelLighting,
         IUserPromptService prompts, ILoggingService logging)
@@ -131,6 +142,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         _applianceMode = applianceMode;
         _updates = updates;
         _firmwareUpdate = firmwareUpdate;
+        _wallpaper = wallpaper;
         _displaySchedule = displaySchedule;
         _panelLighting = panelLighting;
         _prompts = prompts;
@@ -143,8 +155,8 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         MatrixOkCommand = new AsyncRelayCommand(() => SendAsync("MATRIX ICON OK"));
         MatrixXCommand = new AsyncRelayCommand(() => SendAsync("MATRIX ICON X"));
         BuzzerCommand = new AsyncRelayCommand(() => SendAsync("BUZZ 1000 50"));
-        VolumeDownCommand = new RelayCommand(_ => _volume.ChangeBy(-5));
-        VolumeUpCommand = new RelayCommand(_ => _volume.ChangeBy(5));
+        VolumeDownCommand = new RelayCommand(_ => _volume.SetVolume(VolumeStepCalculator.Next(_volume.CurrentVolumePercent, -1, _configuration.Current.VolumeStepPercent)));
+        VolumeUpCommand = new RelayCommand(_ => _volume.SetVolume(VolumeStepCalculator.Next(_volume.CurrentVolumePercent, 1, _configuration.Current.VolumeStepPercent)));
         MuteCommand = new RelayCommand(_ => _volume.ToggleMute());
         RunSelfTestCommand = new AsyncRelayCommand(RunSelfTestAsync);
         PanelAllOffCommand = new AsyncRelayCommand(() => SendAsync("PANEL ALL OFF"));
@@ -166,6 +178,9 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         CheckForUpdatesCommand = new AsyncRelayCommand(() => CheckForUpdatesAsync(false));
         InstallUpdateCommand = new AsyncRelayCommand(InstallUpdateAsync);
         UpdateControllerFirmwareCommand = new AsyncRelayCommand(UpdateControllerFirmwareAsync);
+        BrowseWallpaperFolderCommand = new RelayCommand(_ => BrowseForWallpaperFolder());
+        RefreshWallpaperCommand = new AsyncRelayCommand(RefreshWallpaperAsync);
+        NextWallpaperCommand = new AsyncRelayCommand(NextWallpaperAsync);
 
         var buttonNames = new[] { "Volume Down", "Volume Up", NormalizeName(configuration.Current.Calls.Adrian.DisplayName, "Contact 1"),
             NormalizeName(configuration.Current.Calls.Yvonne.DisplayName, "Contact 2"), "TV", "Video", "Stop/Home", "Speakers" };
@@ -208,6 +223,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         BlackoutWakePrompt = configuration.Current.DisplaySchedule.WakePromptText;
         BlackoutFrom = configuration.Current.DisplaySchedule.BlackoutFrom;
         ResumeAt = configuration.Current.DisplaySchedule.ResumeAt;
+        LoadWallpaperEditor(configuration.Current.Wallpaper);
         StartWithWindows = configuration.Current.Startup.StartWithWindows || startup.IsEnabled;
         ProtectSession = configuration.Current.ApplianceMode.ProtectSession || applianceMode.IsSessionProtectionEnabled;
         RefreshAudioDevices();
@@ -233,8 +249,10 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         _volume.VolumeChanged += (_, percent) => OnUi(() => { VolumePercent = percent; Muted = _volume.IsMuted; });
         _state.StateChanged += (_, value) => OnUi(() => SystemState = DescribeState(value));
         _panelLighting.LightStatesChanged += (_, _) => OnUi(RaisePreviewLightProperties);
+        _wallpaper.StatusChanged += (_, snapshot) => OnUi(() => ApplyWallpaperStatus(snapshot));
         ApplyConnection(_arduino.Connection);
         VolumePercent = _volume.CurrentVolumePercent;
+        ApplyWallpaperStatus(_wallpaper.Current);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -275,6 +293,9 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
     public ICommand CheckForUpdatesCommand { get; }
     public ICommand InstallUpdateCommand { get; }
     public ICommand UpdateControllerFirmwareCommand { get; }
+    public ICommand BrowseWallpaperFolderCommand { get; }
+    public ICommand RefreshWallpaperCommand { get; }
+    public ICommand NextWallpaperCommand { get; }
 
     public string ConnectionStatus { get => _connectionStatus; private set => Set(ref _connectionStatus, value); }
     public string Port { get => _port; private set => Set(ref _port, value); }
@@ -335,6 +356,14 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
     public double Rgb2Blue { get; set; }
     public double PanelBrightness { get => _panelBrightness; set => Set(ref _panelBrightness, value); }
     public double LongPressMilliseconds { get => _longPressMilliseconds; set => Set(ref _longPressMilliseconds, value); }
+    public bool WallpaperEnabled { get => _wallpaperEnabled; set => Set(ref _wallpaperEnabled, value); }
+    public string WallpaperSourceFolder { get => _wallpaperSourceFolder; set => Set(ref _wallpaperSourceFolder, value); }
+    public double WallpaperRotationMinutes { get => _wallpaperRotationMinutes; set => Set(ref _wallpaperRotationMinutes, value); }
+    public bool WallpaperIncludeSubfolders { get => _wallpaperIncludeSubfolders; set => Set(ref _wallpaperIncludeSubfolders, value); }
+    public bool WallpaperShowCaptureDate { get => _wallpaperShowCaptureDate; set => Set(ref _wallpaperShowCaptureDate, value); }
+    public bool WallpaperShowLocation { get => _wallpaperShowLocation; set => Set(ref _wallpaperShowLocation, value); }
+    public string WallpaperDateFormat { get => _wallpaperDateFormat; set => Set(ref _wallpaperDateFormat, value); }
+    public string WallpaperStatus { get => _wallpaperStatus; private set => Set(ref _wallpaperStatus, value); }
     public bool VolumeDownLightOn => PreviewLight(0);
     public bool VolumeUpLightOn => PreviewLight(1);
     public bool TvLightOn => PreviewLight(2);
@@ -445,6 +474,50 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         return dialog.ShowDialog() == true ? dialog.FileName : null;
     }
 
+    private void BrowseForWallpaperFolder()
+    {
+        using var dialog = new System.Windows.Forms.FolderBrowserDialog
+        {
+            Description = "Choose the Google Drive folder containing wallpaper photos",
+            UseDescriptionForTitle = true,
+            SelectedPath = Directory.Exists(WallpaperSourceFolder) ? WallpaperSourceFolder : string.Empty,
+            ShowNewFolderButton = false
+        };
+        if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            WallpaperSourceFolder = dialog.SelectedPath;
+    }
+
+    private async Task RefreshWallpaperAsync()
+    {
+        try
+        {
+            OperationStatus = "Refreshing wallpaper photos...";
+            await _wallpaper.RefreshAsync();
+            ApplyWallpaperStatus(_wallpaper.Current);
+            OperationStatus = _wallpaper.Current.Status;
+        }
+        catch (Exception exception)
+        {
+            OperationStatus = $"WALLPAPER REFRESH FAILED: {exception.Message}";
+            _logging.Error("wallpaper_manual_refresh_failed", exception, exception.Message);
+        }
+    }
+
+    private async Task NextWallpaperAsync()
+    {
+        try
+        {
+            await _wallpaper.ShowNextAsync();
+            ApplyWallpaperStatus(_wallpaper.Current);
+            OperationStatus = _wallpaper.Current.Status;
+        }
+        catch (Exception exception)
+        {
+            OperationStatus = $"WALLPAPER CHANGE FAILED: {exception.Message}";
+            _logging.Error("wallpaper_manual_next_failed", exception, exception.Message);
+        }
+    }
+
     private void ChooseBlackoutClockColor()
     {
         using var dialog = new System.Windows.Forms.ColorDialog { FullOpen = true };
@@ -488,6 +561,16 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
             _configuration.Current.DisplaySchedule.WakePromptText = BlackoutWakePrompt.Trim();
             _configuration.Current.DisplaySchedule.BlackoutFrom = BlackoutFrom;
             _configuration.Current.DisplaySchedule.ResumeAt = ResumeAt;
+            if (WallpaperEnabled && (string.IsNullOrWhiteSpace(WallpaperSourceFolder) || !Directory.Exists(WallpaperSourceFolder)))
+                throw new InvalidOperationException("Choose an available Google Drive photo folder before enabling wallpaper rotation.");
+            _configuration.Current.Wallpaper.Enabled = WallpaperEnabled;
+            _configuration.Current.Wallpaper.SourceFolder = WallpaperSourceFolder.Trim();
+            _configuration.Current.Wallpaper.RotationMinutes = (int)Math.Clamp(Math.Round(WallpaperRotationMinutes), 1, 1440);
+            _configuration.Current.Wallpaper.IncludeSubfolders = WallpaperIncludeSubfolders;
+            _configuration.Current.Wallpaper.ShowCaptureDate = WallpaperShowCaptureDate;
+            _configuration.Current.Wallpaper.ShowLocation = WallpaperShowLocation;
+            _configuration.Current.Wallpaper.DateFormat = string.IsNullOrWhiteSpace(WallpaperDateFormat)
+                ? "dddd, dd MMMM yyyy  h:mm tt" : WallpaperDateFormat.Trim();
             _configuration.Current.Startup.StartWithWindows = StartWithWindows;
             _configuration.Current.ApplianceMode.ProtectSession = ProtectSession;
             _configuration.Current.Controller.LongPressMilliseconds = (int)Math.Clamp(Math.Round(LongPressMilliseconds), 500, 10000);
@@ -496,6 +579,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
             SaveAudioDeviceSelection();
             await _configuration.SaveAsync();
             _displaySchedule.Evaluate();
+            _wallpaper.ApplyConfiguration();
             if (_arduino.Connection.IsConnected && Version.TryParse(_arduino.Connection.FirmwareVersion, out var firmwareVersion) &&
                 firmwareVersion >= new Version(0, 2, 2))
             {
@@ -562,6 +646,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
             _startup.SetEnabled(StartWithWindows);
             _applianceMode.SetSessionProtection(ProtectSession);
             _displaySchedule.Evaluate();
+            _wallpaper.ApplyConfiguration();
             OperationStatus = $"Settings imported from {dialog.FileName}";
             _logging.Information("settings_imported", dialog.FileName);
         }
@@ -601,6 +686,7 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         BlackoutWakePrompt = current.DisplaySchedule.WakePromptText;
         BlackoutFrom = current.DisplaySchedule.BlackoutFrom;
         ResumeAt = current.DisplaySchedule.ResumeAt;
+        LoadWallpaperEditor(current.Wallpaper);
         StartWithWindows = current.Startup.StartWithWindows;
         ProtectSession = current.ApplianceMode.ProtectSession;
         PanelBrightness = current.Lighting.PanelBrightnessPercent;
@@ -610,6 +696,24 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         SelectedHeadphoneDeviceId = ResolveSavedDeviceId(current.AudioRouting.HeadphoneDeviceId, current.AudioRouting.HeadphoneDeviceName);
         SelectedSpeakerMicrophoneId = ResolveSavedInputDeviceId(current.AudioRouting.SpeakerMicrophoneId, current.AudioRouting.SpeakerMicrophoneName);
         SelectedHeadphoneMicrophoneId = ResolveSavedInputDeviceId(current.AudioRouting.HeadphoneMicrophoneId, current.AudioRouting.HeadphoneMicrophoneName);
+    }
+
+    private void LoadWallpaperEditor(WallpaperConfiguration settings)
+    {
+        WallpaperEnabled = settings.Enabled;
+        WallpaperSourceFolder = settings.SourceFolder;
+        WallpaperRotationMinutes = settings.RotationMinutes;
+        WallpaperIncludeSubfolders = settings.IncludeSubfolders;
+        WallpaperShowCaptureDate = settings.ShowCaptureDate;
+        WallpaperShowLocation = settings.ShowLocation;
+        WallpaperDateFormat = settings.DateFormat;
+    }
+
+    private void ApplyWallpaperStatus(WallpaperSnapshot snapshot)
+    {
+        var detail = snapshot.LatestDay is null ? string.Empty :
+            $" | latest day {snapshot.LatestDay:dd/MM/yyyy} | {snapshot.PhotosOnLatestDay} photo(s)";
+        WallpaperStatus = snapshot.Status + detail;
     }
 
     private void RefreshAudioDevices()

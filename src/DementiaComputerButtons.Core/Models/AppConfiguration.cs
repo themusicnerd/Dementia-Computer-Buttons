@@ -3,7 +3,6 @@ namespace DementiaComputerButtons.Core.Models;
 public sealed class AppConfiguration
 {
     public int VolumeStepPercent { get; set; } = 5;
-    public int VolumeHoldStepPercent { get; set; } = 2;
     public ControllerConfiguration Controller { get; set; } = new();
     public Dictionary<string, string> ButtonMappings { get; set; } = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -28,10 +27,22 @@ public sealed class AppConfiguration
     public AudioRoutingConfiguration AudioRouting { get; set; } = new();
     public LightingConfiguration Lighting { get; set; } = new();
     public DisplayScheduleConfiguration DisplaySchedule { get; set; } = new();
+    public WallpaperConfiguration Wallpaper { get; set; } = new();
     public StartupConfiguration Startup { get; set; } = new();
     public ApplianceModeConfiguration ApplianceMode { get; set; } = new();
     public UpdateConfiguration Updates { get; set; } = new();
     public Dictionary<string, string> IrCommands { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+}
+
+public sealed class WallpaperConfiguration
+{
+    public bool Enabled { get; set; }
+    public string SourceFolder { get; set; } = string.Empty;
+    public int RotationMinutes { get; set; } = 15;
+    public bool IncludeSubfolders { get; set; } = true;
+    public bool ShowCaptureDate { get; set; } = true;
+    public bool ShowLocation { get; set; } = true;
+    public string DateFormat { get; set; } = "dddd, dd MMMM yyyy  h:mm tt";
 }
 
 public sealed class UpdateConfiguration

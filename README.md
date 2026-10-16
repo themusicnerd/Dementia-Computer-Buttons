@@ -48,8 +48,9 @@ Run without hardware by setting `DCB_USE_MOCK=1` in that terminal first. Logs
 are JSON Lines files under
 `%LOCALAPPDATA%\DementiaComputerButtons\logs`.
 
-The window includes a clickable 3×3 preview of the physical panel. Its **Content
-setup** section saves a YouTube video/live-stream URL, lets the operator browse
+The window is organised into Console, Media & Calls, Display & Photos,
+Apps & System, Controller, and Hardware Tests tabs. It includes a clickable
+3 x 3 preview of the physical panel. Its media settings save a YouTube video/live-stream URL, let the operator browse
 for a local VLC video, and chooses whether Stop/Home closes VLC. Settings are
 stored under `%LOCALAPPDATA%\DementiaComputerButtons`, outside the executable.
 Minimizing the window or clicking its X button hides it from the taskbar and
@@ -99,6 +100,28 @@ import that file on another computer. Imports are validated and saved atomically
 an invalid file leaves the current settings unchanged. Media files and contact
 photos are referenced by path and must be copied separately.
 
+## Google Drive photo wallpaper
+
+The Display & Photos tab can use a local folder maintained by Google Drive for
+Desktop. Choose a mirrored folder, or mark a streamed folder as available
+offline, then enable wallpaper rotation. The application watches the folder for
+new photographs and also rescans it at the configured interval.
+
+Only photographs belonging to the newest capture date are included in the
+rotation. EXIF capture time is preferred; the file modification time is used
+when a photograph has no capture timestamp. The interval is configurable from
+1 to 1440 minutes, subfolders are optional, and **Show next now** advances
+immediately. A white date/time overlay is rendered at the top right with a soft
+outline and directional shadow. GPS coordinates receive a location-pin overlay
+when the source file contains readable EXIF GPS data. The official OFL-licensed
+Google Sans Flex variable font and its licence are bundled with the application.
+
+Google Drive for Desktop appears in Required applications and can be installed
+through the trusted `Google.GoogleDrive` winget package. This implementation
+does not require Google account credentials or OAuth tokens inside Dementia
+Computer Buttons. Drive performs synchronisation and the application consumes
+the resulting local files, so existing wallpaper photos remain usable offline.
+
 Optional call quiet hours can block both incoming and outgoing calls during a
 daily local-time range, including ranges across midnight such as 22:00–07:00.
 Incoming MicroSIP calls are declined without flashing the panel or showing the
@@ -141,7 +164,7 @@ Create the self-contained application and Windows Installer package:
 ```powershell
 .\tools\Publish-DadConsole.ps1
 .\tools\Build-Msi.ps1
-msiexec.exe /i .\dist\DementiaComputerButtons-0.1.8-x64.msi
+msiexec.exe /i .\dist\DementiaComputerButtons-0.1.9-x64.msi
 ```
 
 The MSI is self-contained and creates an all-users Start Menu shortcut. The
@@ -188,8 +211,10 @@ wait for “Connected and healthy”, then use individual output controls or **R
 HARDWARE SELF TEST**. Visual and audible steps ask the operator for confirmation;
 they are never marked passed merely because the serial command was acknowledged.
 
-The LEFT button maps to volume down 5%; RIGHT maps to volume up 5%. Holding for
-500 ms then ramps in 2% steps approximately every 180 ms until release. Their buzzer
+The LEFT button maps to volume down 5%; RIGHT maps to volume up 5%. Volume
+changes snap in the pressed direction to the configured 5% grid, so Up from 23%
+becomes 25% instead of 28%. Holding for 500 ms then ramps in 5% steps
+approximately every 180 ms until release. Their buzzer
 earcons are deliberately distinct: descending for down, ascending for up, with a
 three-note cue for a long press. All patterns are short and nonblocking.
 

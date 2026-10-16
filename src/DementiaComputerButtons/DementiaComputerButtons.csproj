@@ -17,6 +17,17 @@
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
     <Resource Include="Assets\DementiaComputerButtons.ico" />
+    <Resource Include="Assets\Fonts\GoogleSansFlex.ttf" />
+    <Content Include="Assets\Fonts\OFL.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <TargetPath>Licenses\GoogleSansFlex-OFL.txt</TargetPath>
+    </Content>
+    <Content Include="Assets\Fonts\TRADEMARKS.md">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <TargetPath>Licenses\GoogleSansFlex-TRADEMARKS.md</TargetPath>
+    </Content>
   </ItemGroup>
 
   <PropertyGroup>
@@ -27,7 +38,7 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationIcon>Assets\DementiaComputerButtons.ico</ApplicationIcon>
-    <Version>0.1.8</Version>
+    <Version>0.1.9</Version>
   </PropertyGroup>
 
 </Project>

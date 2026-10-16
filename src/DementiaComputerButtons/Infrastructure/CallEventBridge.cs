@@ -12,6 +12,7 @@ public sealed class CallEventBridge(ICallService calls, ILoggingService logging)
     private readonly CancellationTokenSource _shutdown = new();
     private Task? _listener;
     private Task? _queuedEventListener;
+    private DateTimeOffset _lastListenerErrorUtc = DateTimeOffset.MinValue;
 
     public void Start()
     {
@@ -73,7 +74,17 @@ public sealed class CallEventBridge(ICallService calls, ILoggingService logging)
                 if (parts.Length == 2) calls.HandleExternalEvent(parts[0], parts[1]);
             }
             catch (OperationCanceledException) { break; }
-            catch (Exception exception) { logging.Error("call_event_bridge_failed", exception, exception.Message); }
+            catch (Exception exception)
+            {
+                var now = DateTimeOffset.UtcNow;
+                if (now - _lastListenerErrorUtc >= TimeSpan.FromSeconds(30))
+                {
+                    _lastListenerErrorUtc = now;
+                    logging.Error("call_event_bridge_failed", exception, exception.Message);
+                }
+                try { await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false); }
+                catch (OperationCanceledException) { break; }
+            }
         }
     }
 
