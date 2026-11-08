@@ -297,3 +297,17 @@ verified writable by the current user on this computer.
 The Release build completed with zero warnings and all 75 automated tests
 passed. The 59,310,080-byte 0.1.13 MSI has SHA-256
 `15A855195AA7185A94181F02F3E18DEE83A53F23D344FE0F0696093E00EFD94F`.
+
+## 2026-11-08 complete Google Photos descriptions
+
+Version 0.1.14 removes the 600-character and three-line limits from Google
+Photos descriptions. Paragraph breaks are preserved, text wraps to as many
+lines as required, and the renderer progressively reduces the caption font only
+when necessary to keep a long description on-screen.
+
+The installed application rendered the current album's 738-character
+description completely across five bottom lines with no ellipsis. The date and
+time remained unobstructed and the application remained responsive. The
+Release build completed with zero warnings and all 75 automated tests passed.
+The 59,305,984-byte 0.1.14 MSI has SHA-256
+`ECD1DCF296AFC24BE3961FBE5C1237A6DAA05FB95FE5310A6396EAE24A5CBE6B`.

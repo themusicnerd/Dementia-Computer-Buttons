@@ -52,9 +52,9 @@ public sealed class WindowsWallpaperService : IWallpaperService
         _http.Timeout = TimeSpan.FromSeconds(12);
         _googleHttp.Timeout = TimeSpan.FromSeconds(15);
         _http.DefaultRequestHeaders.UserAgent.ParseAdd(
-            "DementiaComputerButtons/0.1.13 (+https://github.com/themusicnerd/Dementia-Computer-Buttons)");
+            "DementiaComputerButtons/0.1.14 (+https://github.com/themusicnerd/Dementia-Computer-Buttons)");
         _googleHttp.DefaultRequestHeaders.UserAgent.ParseAdd(
-            "DementiaComputerButtons/0.1.13 (+https://github.com/themusicnerd/Dementia-Computer-Buttons)");
+            "DementiaComputerButtons/0.1.14 (+https://github.com/themusicnerd/Dementia-Computer-Buttons)");
         Current = new(false, "Wallpaper rotation is disabled", null, null, 0);
     }
 
@@ -502,9 +502,7 @@ public sealed class WindowsWallpaperService : IWallpaperService
     private static void DrawDescription(DrawingContext drawing, string description, int width, int height,
         bool mapVisible)
     {
-        var content = string.Join(" ", description.Split((char[]?)null,
-            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
-        if (content.Length > 600) content = content[..600];
+        var content = description.Trim().Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
         var family = new System.Windows.Media.FontFamily(
             new Uri("pack://application:,,,/"), "./Assets/Fonts/#Google Sans Flex");
         var typeface = new Typeface(family, FontStyles.Normal, FontWeights.Medium, FontStretches.Normal);
@@ -516,10 +514,15 @@ public sealed class WindowsWallpaperService : IWallpaperService
             TextAlignment = TextAlignment.Left,
             LineHeight = fontSize * 1.22,
             MaxTextWidth = maximumWidth,
-            MaxTextHeight = fontSize * 3.75,
-            Trimming = TextTrimming.CharacterEllipsis
+            Trimming = TextTrimming.None
         };
         var text = Make(Brushes.White);
+        var maximumHeight = Math.Max(160, height - 96);
+        while (text.Height > maximumHeight && fontSize > 12)
+        {
+            fontSize -= 1;
+            text = Make(Brushes.White);
+        }
         var origin = new Point(48, height - 48 - text.Height);
         var glow = new SolidColorBrush(Color.FromArgb(115, 0, 0, 0));
         glow.Freeze();
