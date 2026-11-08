@@ -284,3 +284,16 @@ backs repeated failures off to six hours while retaining the cached photo. The
 Release build completed with zero warnings and all 75 automated tests passed.
 The 59,293,696-byte 0.1.12 MSI has SHA-256
 `4E0CC8721E1F546985D408765091E94B6027A37F58A9BE27452FD79ABE6387F7`.
+
+## 2026-11-08 settings save isolation
+
+Version 0.1.13 fixes false total-save failures caused by an optional protected
+Windows policy update. Configuration is now persisted before startup and
+appliance-mode side effects. A denied optional registry update is logged and
+shown as a warning without discarding the other settings. Configuration import
+uses the same separation. The local JSON settings file and its directory were
+verified writable by the current user on this computer.
+
+The Release build completed with zero warnings and all 75 automated tests
+passed. The 59,310,080-byte 0.1.13 MSI has SHA-256
+`15A855195AA7185A94181F02F3E18DEE83A53F23D344FE0F0696093E00EFD94F`.

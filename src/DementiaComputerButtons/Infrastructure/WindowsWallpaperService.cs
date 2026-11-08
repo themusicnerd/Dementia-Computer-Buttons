@@ -52,9 +52,9 @@ public sealed class WindowsWallpaperService : IWallpaperService
         _http.Timeout = TimeSpan.FromSeconds(12);
         _googleHttp.Timeout = TimeSpan.FromSeconds(15);
         _http.DefaultRequestHeaders.UserAgent.ParseAdd(
-            "DementiaComputerButtons/0.1.12 (+https://github.com/themusicnerd/Dementia-Computer-Buttons)");
+            "DementiaComputerButtons/0.1.13 (+https://github.com/themusicnerd/Dementia-Computer-Buttons)");
         _googleHttp.DefaultRequestHeaders.UserAgent.ParseAdd(
-            "DementiaComputerButtons/0.1.12 (+https://github.com/themusicnerd/Dementia-Computer-Buttons)");
+            "DementiaComputerButtons/0.1.13 (+https://github.com/themusicnerd/Dementia-Computer-Buttons)");
         Current = new(false, "Wallpaper rotation is disabled", null, null, 0);
     }
 

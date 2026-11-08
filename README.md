@@ -179,7 +179,7 @@ Create the self-contained application and Windows Installer package:
 ```powershell
 .\tools\Publish-DadConsole.ps1
 .\tools\Build-Msi.ps1
-msiexec.exe /i .\dist\DementiaComputerButtons-0.1.12-x64.msi
+msiexec.exe /i .\dist\DementiaComputerButtons-0.1.13-x64.msi
 ```
 
 The MSI is self-contained and creates an all-users Start Menu shortcut. The

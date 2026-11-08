@@ -592,21 +592,24 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
             _configuration.Current.Startup.StartWithWindows = StartWithWindows;
             _configuration.Current.ApplianceMode.ProtectSession = ProtectSession;
             _configuration.Current.Controller.LongPressMilliseconds = (int)Math.Clamp(Math.Round(LongPressMilliseconds), 500, 10000);
-            _startup.SetEnabled(StartWithWindows);
-            _applianceMode.SetSessionProtection(ProtectSession);
             SaveAudioDeviceSelection();
             await _configuration.SaveAsync();
+            var systemWarnings = ApplyOptionalSystemSettings();
             _displaySchedule.Evaluate();
             _wallpaper.ApplyConfiguration();
+            string savedStatus;
             if (_arduino.Connection.IsConnected && Version.TryParse(_arduino.Connection.FirmwareVersion, out var firmwareVersion) &&
                 firmwareVersion >= new Version(0, 2, 2))
             {
                 await _arduino.SendCommandAsync($"PANEL LONGPRESS {_configuration.Current.Controller.LongPressMilliseconds}");
-                OperationStatus = "Console settings and controller long-press time saved";
+                savedStatus = "Console settings and controller long-press time saved";
             }
-            else OperationStatus = _arduino.Connection.IsConnected
+            else savedStatus = _arduino.Connection.IsConnected
                 ? "Settings saved; update controller firmware to apply the long-press time"
                 : "Content and call settings saved";
+            OperationStatus = systemWarnings.Count == 0
+                ? savedStatus
+                : $"{savedStatus}; {string.Join("; ", systemWarnings)}";
         }
         catch (Exception exception)
         {
@@ -661,11 +664,12 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
         {
             await _configuration.ImportAsync(dialog.FileName);
             LoadEditorFromConfiguration();
-            _startup.SetEnabled(StartWithWindows);
-            _applianceMode.SetSessionProtection(ProtectSession);
+            var systemWarnings = ApplyOptionalSystemSettings();
             _displaySchedule.Evaluate();
             _wallpaper.ApplyConfiguration();
-            OperationStatus = $"Settings imported from {dialog.FileName}";
+            OperationStatus = systemWarnings.Count == 0
+                ? $"Settings imported from {dialog.FileName}"
+                : $"Settings imported; {string.Join("; ", systemWarnings)}";
             _logging.Information("settings_imported", dialog.FileName);
         }
         catch (Exception exception)
@@ -673,6 +677,31 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
             OperationStatus = $"IMPORT FAILED: {exception.Message}";
             _logging.Error("settings_import_failed", exception, dialog.FileName);
         }
+    }
+
+    private List<string> ApplyOptionalSystemSettings()
+    {
+        var warnings = new List<string>();
+        try
+        {
+            if (_startup.IsEnabled != StartWithWindows) _startup.SetEnabled(StartWithWindows);
+        }
+        catch (Exception exception)
+        {
+            warnings.Add("Windows startup could not be changed");
+            _logging.Error("startup_setting_apply_failed", exception, exception.Message);
+        }
+        try
+        {
+            if (_applianceMode.IsSessionProtectionEnabled != ProtectSession)
+                _applianceMode.SetSessionProtection(ProtectSession);
+        }
+        catch (Exception exception)
+        {
+            warnings.Add("session protection could not be changed");
+            _logging.Error("appliance_setting_apply_failed", exception, exception.Message);
+        }
+        return warnings;
     }
 
     private void LoadEditorFromConfiguration()
