@@ -185,6 +185,26 @@ public sealed class ConfigurationService(string path, ILoggingService logging) :
             configuration.Wallpaper.RotationMinutes = 15;
         }
         configuration.Wallpaper.SourceFolder ??= string.Empty;
+        configuration.Wallpaper.GooglePhotosAlbumUrl ??= string.Empty;
+        if (configuration.Wallpaper.SourceType is not ("LocalFolder" or "GooglePhotos"))
+        {
+            _warnings.Add("Wallpaper source type is invalid; using LocalFolder.");
+            configuration.Wallpaper.SourceType = "LocalFolder";
+        }
+        if (configuration.Wallpaper.Enabled && configuration.Wallpaper.SourceType == "GooglePhotos")
+        {
+            try { GooglePhotosAlbumParser.ValidateAlbumUrl(configuration.Wallpaper.GooglePhotosAlbumUrl); }
+            catch (ArgumentException)
+            {
+                _warnings.Add("Google Photos shared-album link is invalid; wallpaper rotation was disabled.");
+                configuration.Wallpaper.Enabled = false;
+            }
+            if (configuration.Wallpaper.RotationMinutes < 15)
+            {
+                _warnings.Add("Google Photos check interval must be at least 15 minutes; using 15.");
+                configuration.Wallpaper.RotationMinutes = 15;
+            }
+        }
         configuration.Wallpaper.DateFormat ??= "dd MMMM yyyy";
         configuration.Wallpaper.TimeFormat ??= "h:mm tt";
         if (configuration.Wallpaper.DateFormat == "dddd, dd MMMM yyyy  h:mm tt")

@@ -37,11 +37,14 @@ public sealed class AppConfiguration
 public sealed class WallpaperConfiguration
 {
     public bool Enabled { get; set; }
+    public string SourceType { get; set; } = "LocalFolder";
     public string SourceFolder { get; set; } = string.Empty;
+    public string GooglePhotosAlbumUrl { get; set; } = string.Empty;
     public int RotationMinutes { get; set; } = 15;
     public bool IncludeSubfolders { get; set; } = true;
     public bool ShowCaptureDate { get; set; } = true;
     public bool ShowLocation { get; set; } = true;
+    public bool ShowDescription { get; set; } = true;
     public string DateFormat { get; set; } = "dd MMMM yyyy";
     public string TimeFormat { get; set; } = "h:mm tt";
 }

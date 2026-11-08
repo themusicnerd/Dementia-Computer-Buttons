@@ -1,7 +1,10 @@
 using System.Globalization;
 using System.IO;
 using System.Net.Http;
+using System.Net;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Media;
@@ -29,6 +32,7 @@ public sealed class WindowsWallpaperService : IWallpaperService
     private readonly ILoggingService _logging;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly HttpClient _http = new();
+    private readonly HttpClient _googleHttp = new(new HttpClientHandler { AllowAutoRedirect = false });
     private readonly string _outputDirectory = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "DementiaComputerButtons", "wallpaper");
@@ -38,14 +42,19 @@ public sealed class WindowsWallpaperService : IWallpaperService
     private System.Threading.Timer? _availabilityTimer;
     private bool _disposed;
     private DateTime _lastGeocodeRequestUtc = DateTime.MinValue;
+    private int _googleFailureCount;
+    private DateTimeOffset _nextGoogleAttemptUtc = DateTimeOffset.MinValue;
 
     public WindowsWallpaperService(IConfigurationService configuration, ILoggingService logging)
     {
         _configuration = configuration;
         _logging = logging;
         _http.Timeout = TimeSpan.FromSeconds(12);
+        _googleHttp.Timeout = TimeSpan.FromSeconds(15);
         _http.DefaultRequestHeaders.UserAgent.ParseAdd(
-            "DementiaComputerButtons/0.1.11 (+https://github.com/themusicnerd/Dementia-Computer-Buttons)");
+            "DementiaComputerButtons/0.1.12 (+https://github.com/themusicnerd/Dementia-Computer-Buttons)");
+        _googleHttp.DefaultRequestHeaders.UserAgent.ParseAdd(
+            "DementiaComputerButtons/0.1.12 (+https://github.com/themusicnerd/Dementia-Computer-Buttons)");
         Current = new(false, "Wallpaper rotation is disabled", null, null, 0);
     }
 
@@ -62,6 +71,24 @@ public sealed class WindowsWallpaperService : IWallpaperService
         if (!settings.Enabled)
         {
             Update(new(false, "Wallpaper rotation is disabled", Current.CurrentPhoto, Current.LatestDay, Current.PhotosOnLatestDay));
+            return;
+        }
+        if (settings.SourceType == "GooglePhotos")
+        {
+            try { GooglePhotosAlbumParser.ValidateAlbumUrl(settings.GooglePhotosAlbumUrl); }
+            catch (ArgumentException exception)
+            {
+                Update(new(false, exception.Message, Current.CurrentPhoto, null, 0));
+                return;
+            }
+            _googleFailureCount = 0;
+            _nextGoogleAttemptUtc = DateTimeOffset.MinValue;
+            var checkMinutes = Math.Clamp(settings.RotationMinutes, 15, 1440);
+            _rotationTimer = new System.Threading.Timer(_ => _ = RefreshSafeAsync(), null,
+                TimeSpan.FromMinutes(checkMinutes), TimeSpan.FromMinutes(checkMinutes));
+            Update(new(true, $"Checking Google Photos every {checkMinutes} minutes", Current.CurrentPhoto,
+                Current.LatestDay, Current.PhotosOnLatestDay));
+            _ = RefreshSafeAsync();
             return;
         }
         if (string.IsNullOrWhiteSpace(settings.SourceFolder) || !Directory.Exists(settings.SourceFolder))
@@ -106,8 +133,15 @@ public sealed class WindowsWallpaperService : IWallpaperService
         _ = RefreshSafeAsync();
     }
 
-    public Task RefreshAsync(CancellationToken cancellationToken = default) =>
-        SelectAndDisplayAsync(advance: false, cancellationToken);
+    public Task RefreshAsync(CancellationToken cancellationToken = default)
+    {
+        if (_configuration.Current.Wallpaper.SourceType == "GooglePhotos")
+        {
+            _googleFailureCount = 0;
+            _nextGoogleAttemptUtc = DateTimeOffset.MinValue;
+        }
+        return SelectAndDisplayAsync(advance: false, cancellationToken);
+    }
 
     public Task ShowNextAsync(CancellationToken cancellationToken = default) =>
         SelectAndDisplayAsync(advance: true, cancellationToken);
@@ -118,7 +152,13 @@ public sealed class WindowsWallpaperService : IWallpaperService
         try
         {
             var settings = _configuration.Current.Wallpaper;
-            if (!settings.Enabled || !Directory.Exists(settings.SourceFolder)) return;
+            if (!settings.Enabled) return;
+            if (settings.SourceType == "GooglePhotos")
+            {
+                await SelectGooglePhotosAsync(settings, cancellationToken).ConfigureAwait(false);
+                return;
+            }
+            if (!Directory.Exists(settings.SourceFolder)) return;
             var enumeration = new EnumerationOptions
             {
                 RecurseSubdirectories = settings.IncludeSubfolders,
@@ -160,6 +200,183 @@ public sealed class WindowsWallpaperService : IWallpaperService
             _logging.Error("wallpaper_update_failed", exception, exception.Message);
         }
         finally { _gate.Release(); }
+    }
+
+    private async Task SelectGooglePhotosAsync(WallpaperConfiguration settings, CancellationToken cancellationToken)
+    {
+        var cacheDirectory = Path.Combine(_outputDirectory, "google-photos");
+        var manifestPath = Path.Combine(cacheDirectory, "current.json");
+        Directory.CreateDirectory(cacheDirectory);
+        var cached = await ReadGoogleManifestAsync(manifestPath, cancellationToken).ConfigureAwait(false);
+        if (DateTimeOffset.UtcNow < _nextGoogleAttemptUtc)
+        {
+            Update(new(true, $"Google Photos retry deferred until {_nextGoogleAttemptUtc.ToLocalTime():t}",
+                cached?.ImagePath, cached?.Taken is null ? null : DateOnly.FromDateTime(cached.Taken.Value.LocalDateTime),
+                cached is null ? 0 : 1));
+            return;
+        }
+        try
+        {
+            var albumUri = GooglePhotosAlbumParser.ValidateAlbumUrl(settings.GooglePhotosAlbumUrl);
+            using var albumResponse = await GetGooglePageAsync(albumUri, cancellationToken).ConfigureAwait(false);
+            albumResponse.EnsureSuccessStatusCode();
+            var resolvedAlbumUri = albumResponse.RequestMessage?.RequestUri ?? albumUri;
+            GooglePhotosAlbumParser.ValidateAlbumUrl(resolvedAlbumUri.AbsoluteUri);
+            var albumHtml = await ReadLimitedTextAsync(albumResponse.Content, 12_000_000, cancellationToken)
+                .ConfigureAwait(false);
+            var selected = GooglePhotosAlbumParser.ChooseLatest(GooglePhotosAlbumParser.ExtractPhotos(albumHtml))
+                ?? throw new InvalidOperationException("No dated photo records were found in the shared album.");
+
+            var cacheKey = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(selected.Id)))[..24];
+            var imagePath = Path.Combine(cacheDirectory, cacheKey + ".image");
+            var description = cached?.Id == selected.Id ? cached.Description : string.Empty;
+            var lastDescriptionCheck = cached?.Id == selected.Id ? cached.DescriptionCheckedUtc : null;
+            if (cached?.Id != selected.Id || !File.Exists(imagePath))
+                await DownloadGooglePhotoAsync(selected.ImageUrl, imagePath, cancellationToken).ConfigureAwait(false);
+
+            if (cached?.Id != selected.Id || lastDescriptionCheck is null ||
+                DateTimeOffset.UtcNow - lastDescriptionCheck > TimeSpan.FromHours(1))
+            {
+                try
+                {
+                    var detailBuilder = new UriBuilder(resolvedAlbumUri)
+                    {
+                        Path = resolvedAlbumUri.AbsolutePath.TrimEnd('/') + "/photo/" + Uri.EscapeDataString(selected.Id)
+                    };
+                    using var detailResponse = await GetGooglePageAsync(detailBuilder.Uri, cancellationToken)
+                        .ConfigureAwait(false);
+                    detailResponse.EnsureSuccessStatusCode();
+                    var detailHtml = await ReadLimitedTextAsync(detailResponse.Content, 8_000_000, cancellationToken)
+                        .ConfigureAwait(false);
+                    description = GooglePhotosAlbumParser.ExtractDescription(detailHtml, selected.Id);
+                    lastDescriptionCheck = DateTimeOffset.UtcNow;
+                }
+                catch (Exception exception) when (exception is not OperationCanceledException)
+                {
+                    _logging.Warning("google_photos_description_failed", exception.Message);
+                }
+            }
+
+            var manifest = new GooglePhotosCacheManifest(selected.Id, imagePath, selected.Taken, selected.Added,
+                description, lastDescriptionCheck);
+            await File.WriteAllTextAsync(manifestPath, JsonSerializer.Serialize(manifest), cancellationToken)
+                .ConfigureAwait(false);
+            _googleFailureCount = 0;
+            _nextGoogleAttemptUtc = DateTimeOffset.MinValue;
+            await RenderGooglePhotoAsync(manifest, settings, fromCache: false, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+        catch (Exception exception)
+        {
+            _logging.Warning("google_photos_check_failed", exception.Message);
+            _googleFailureCount = Math.Min(_googleFailureCount + 1, 6);
+            var delayMinutes = Math.Min(15 * (1 << (_googleFailureCount - 1)), 360);
+            _nextGoogleAttemptUtc = DateTimeOffset.UtcNow.AddMinutes(delayMinutes);
+            if (cached is not null && File.Exists(cached.ImagePath))
+            {
+                await RenderGooglePhotoAsync(cached, settings, fromCache: true, cancellationToken).ConfigureAwait(false);
+                Update(Current with { Status = $"Google Photos unavailable; cached photo shown; retry after {_nextGoogleAttemptUtc.ToLocalTime():t}" });
+                return;
+            }
+            throw new InvalidOperationException("Google Photos could not be read and no cached photo is available.", exception);
+        }
+    }
+
+    private async Task RenderGooglePhotoAsync(GooglePhotosCacheManifest manifest, WallpaperConfiguration settings,
+        bool fromCache, CancellationToken cancellationToken)
+    {
+        var metadata = ReadMetadata(manifest.ImagePath) with
+        {
+            TakenAt = (manifest.Taken ?? manifest.Added ?? File.GetLastWriteTime(manifest.ImagePath)).LocalDateTime,
+            Description = manifest.Description
+        };
+        var outputPath = await RenderAndSetAsync(manifest.ImagePath, metadata, settings, cancellationToken)
+            .ConfigureAwait(false);
+        var day = DateOnly.FromDateTime(metadata.TakenAt);
+        var status = fromCache ? "Google Photos unavailable; showing cached photo" : "Showing latest Google Photos album photo";
+        Update(new(true, status, manifest.ImagePath, day, 1));
+        _logging.Information("wallpaper_changed",
+            $"source=GooglePhotos; mediaIdHash={Path.GetFileNameWithoutExtension(manifest.ImagePath)}; output={outputPath}; captureDay={day:yyyy-MM-dd}; cached={fromCache}");
+    }
+
+    private async Task DownloadGooglePhotoAsync(Uri original, string destination, CancellationToken cancellationToken)
+    {
+        if (!GooglePhotosAlbumParser.IsImageHost(original))
+            throw new InvalidOperationException("Google Photos returned an unexpected image host.");
+        var value = original.GetLeftPart(UriPartial.Path);
+        var equals = value.LastIndexOf('=');
+        if (equals > value.LastIndexOf('/')) value = value[..equals];
+        var imageUri = new Uri(value + "=w1920-h1080");
+        using var response = await _googleHttp.GetAsync(imageUri, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+            .ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        var finalUri = response.RequestMessage?.RequestUri ?? imageUri;
+        if (!GooglePhotosAlbumParser.IsImageHost(finalUri))
+            throw new InvalidOperationException("Google Photos redirected the image to an unexpected host.");
+        var mediaType = response.Content.Headers.ContentType?.MediaType ?? string.Empty;
+        if (!mediaType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Google Photos did not return an image.");
+        var temporary = destination + ".tmp";
+        await using (var input = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false))
+        await using (var output = File.Create(temporary))
+        {
+            var buffer = new byte[81920];
+            long total = 0;
+            int read;
+            while ((read = await input.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
+            {
+                total += read;
+                if (total > 25_000_000) throw new InvalidOperationException("Google Photos image exceeded 25 MB.");
+                await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+            }
+        }
+        File.Move(temporary, destination, true);
+    }
+
+    private static async Task<string> ReadLimitedTextAsync(HttpContent content, int maximumBytes,
+        CancellationToken cancellationToken)
+    {
+        await using var input = await content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        using var output = new MemoryStream();
+        var buffer = new byte[81920];
+        int read;
+        while ((read = await input.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
+        {
+            if (output.Length + read > maximumBytes) throw new InvalidOperationException("Google Photos page was unexpectedly large.");
+            output.Write(buffer, 0, read);
+        }
+        return Encoding.UTF8.GetString(output.ToArray());
+    }
+
+    private async Task<HttpResponseMessage> GetGooglePageAsync(Uri initial, CancellationToken cancellationToken)
+    {
+        var current = GooglePhotosAlbumParser.ValidateAlbumUrl(initial.AbsoluteUri);
+        for (var redirect = 0; redirect <= 5; redirect++)
+        {
+            var response = await _googleHttp.GetAsync(current, HttpCompletionOption.ResponseHeadersRead,
+                cancellationToken).ConfigureAwait(false);
+            if (response.StatusCode is not (HttpStatusCode.Moved or HttpStatusCode.Redirect or
+                HttpStatusCode.RedirectMethod or HttpStatusCode.TemporaryRedirect or HttpStatusCode.PermanentRedirect))
+                return response;
+            var location = response.Headers.Location;
+            response.Dispose();
+            if (location is null) throw new InvalidOperationException("Google Photos returned an invalid redirect.");
+            current = GooglePhotosAlbumParser.ValidateAlbumUrl(new Uri(current, location).AbsoluteUri);
+        }
+        throw new InvalidOperationException("Google Photos returned too many redirects.");
+    }
+
+    private static async Task<GooglePhotosCacheManifest?> ReadGoogleManifestAsync(string path,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (!File.Exists(path)) return null;
+            return JsonSerializer.Deserialize<GooglePhotosCacheManifest>(
+                await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false));
+        }
+        catch (OperationCanceledException) { throw; }
+        catch { return null; }
     }
 
     private async Task<string> RenderAndSetAsync(string sourcePath, PhotoMetadata metadata,
@@ -223,6 +440,9 @@ public sealed class WindowsWallpaperService : IWallpaperService
             DrawShadowedText(drawing, $"{metadata.TakenAt:dddd}\n{date}\n{time}", width - 48, 36, 48, TextAlignment.Right);
         }
 
+        if (settings.ShowDescription && !string.IsNullOrWhiteSpace(metadata.Description))
+            DrawDescription(drawing, metadata.Description, width, height, location is not null);
+
         if (location is null) return;
         const double mapSize = 300;
         var mapLeft = width - mapSize - 48;
@@ -277,6 +497,36 @@ public sealed class WindowsWallpaperService : IWallpaperService
         drawing.DrawEllipse(Brushes.White, null, new Point(pinX, pinY - 30), 6, 6);
         DrawOutlinedSmallText(drawing, "© OpenStreetMap contributors", mapLeft + 8, mapTop + mapSize - 24);
         DrawShadowedText(drawing, location.DisplayName, width - 48, height - 88, 35, TextAlignment.Right);
+    }
+
+    private static void DrawDescription(DrawingContext drawing, string description, int width, int height,
+        bool mapVisible)
+    {
+        var content = string.Join(" ", description.Split((char[]?)null,
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        if (content.Length > 600) content = content[..600];
+        var family = new System.Windows.Media.FontFamily(
+            new Uri("pack://application:,,,/"), "./Assets/Fonts/#Google Sans Flex");
+        var typeface = new Typeface(family, FontStyles.Normal, FontWeights.Medium, FontStretches.Normal);
+        var fontSize = Math.Clamp(width / 85d, 20d, 27d);
+        var maximumWidth = Math.Max(320, mapVisible ? width - 470 : width - 96);
+        FormattedText Make(System.Windows.Media.Brush brush) => new(content, CultureInfo.CurrentCulture,
+            System.Windows.FlowDirection.LeftToRight, typeface, fontSize, brush, 1.0)
+        {
+            TextAlignment = TextAlignment.Left,
+            LineHeight = fontSize * 1.22,
+            MaxTextWidth = maximumWidth,
+            MaxTextHeight = fontSize * 3.75,
+            Trimming = TextTrimming.CharacterEllipsis
+        };
+        var text = Make(Brushes.White);
+        var origin = new Point(48, height - 48 - text.Height);
+        var glow = new SolidColorBrush(Color.FromArgb(115, 0, 0, 0));
+        glow.Freeze();
+        foreach (var offset in new[] { new Vector(-3, 0), new Vector(3, 0), new Vector(0, -3), new Vector(0, 3),
+                     new Vector(-2, -2), new Vector(2, -2), new Vector(-2, 2), new Vector(2, 2), new Vector(5, 6) })
+            drawing.DrawText(Make(glow), origin + offset);
+        drawing.DrawText(text, origin);
     }
 
     private static void DrawShadowedText(DrawingContext drawing, string content, double anchorX, double y,
@@ -415,7 +665,7 @@ public sealed class WindowsWallpaperService : IWallpaperService
         var metadata = frame.Metadata as BitmapMetadata;
         var takenAt = ParseDate(metadata?.DateTaken) ?? File.GetLastWriteTime(path);
         return new(takenAt, ReadGps(metadata, "/app1/ifd/gps/{ushort=2}", "/app1/ifd/gps/{ushort=1}"),
-            ReadGps(metadata, "/app1/ifd/gps/{ushort=4}", "/app1/ifd/gps/{ushort=3}"), ReadOrientation(metadata));
+            ReadGps(metadata, "/app1/ifd/gps/{ushort=4}", "/app1/ifd/gps/{ushort=3}"), ReadOrientation(metadata), null);
     }
 
     private static ushort ReadOrientation(BitmapMetadata? metadata)
@@ -481,7 +731,7 @@ public sealed class WindowsWallpaperService : IWallpaperService
 
     private async Task RefreshSafeAsync()
     {
-        try { await RefreshAsync().ConfigureAwait(false); }
+        try { await SelectAndDisplayAsync(advance: false, CancellationToken.None).ConfigureAwait(false); }
         catch (Exception exception) { _logging.Error("wallpaper_refresh_failed", exception, exception.Message); }
     }
 
@@ -514,10 +764,14 @@ public sealed class WindowsWallpaperService : IWallpaperService
         _disposed = true;
         DisposeScheduling();
         _http.Dispose();
+        _googleHttp.Dispose();
         return ValueTask.CompletedTask;
     }
 
-    private sealed record PhotoMetadata(DateTime TakenAt, double? Latitude, double? Longitude, ushort Orientation);
+    private sealed record PhotoMetadata(DateTime TakenAt, double? Latitude, double? Longitude, ushort Orientation,
+        string? Description);
+    private sealed record GooglePhotosCacheManifest(string Id, string ImagePath, DateTimeOffset? Taken,
+        DateTimeOffset? Added, string Description, DateTimeOffset? DescriptionCheckedUtc);
     private sealed record LocationOverlay(string DisplayName, IReadOnlyList<MapTile> Tiles)
     {
         public const double ViewportPixels = 300;

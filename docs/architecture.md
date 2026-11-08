@@ -79,14 +79,24 @@ the complete human-readable JSON model. Import deserializes and validates a
 candidate before replacing the live model, then atomically saves the accepted
 configuration. Malformed input never replaces working settings.
 
-`WindowsWallpaperService` deliberately consumes a normal local folder rather
-than owning Google credentials. Google Drive for Desktop is responsible for
+`WindowsWallpaperService` can consume a normal local folder rather than owning
+Google credentials. Google Drive for Desktop is responsible for
 synchronisation and offline availability. A file watcher triggers a debounced
 rescan when Drive changes the folder; a periodic timer provides both rotation
 and recovery if the virtual drive temporarily disappears. Image decoding uses
 read/delete sharing so Drive can finish replacing files without deadlocking the
 application. Failed or partially hydrated images are skipped and logged rather
 than stopping the rotation.
+
+The alternative Google Photos source accepts only HTTPS `photos.app.goo.gl` or
+`photos.google.com/share/` links. `GooglePhotosAlbumParser` extracts JSON arrays
+from `AF_initDataCallback` data without evaluating page scripts. The newest
+album-added record wins, with capture time and album order as tie-breakers.
+Redirects and image hosts are allow-listed. The selected image, capture/addition
+timestamps and description are cached locally. Album checks have a 15-minute
+minimum; unchanged images are not downloaded again, descriptions refresh hourly,
+and repeated failures back off exponentially to six hours. The shared link is
+redacted from structured logs.
 
 `LatestDayPhotoSelector` is platform-independent and selects all photographs
 whose EXIF capture date matches the newest date. Selection order is capture time

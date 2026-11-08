@@ -100,12 +100,22 @@ import that file on another computer. Imports are validated and saved atomically
 an invalid file leaves the current settings unchanged. Media files and contact
 photos are referenced by path and must be copied separately.
 
-## Google Drive photo wallpaper
+## Photo wallpaper
 
 The Display & Photos tab can use a local folder maintained by Google Drive for
 Desktop. Choose a mirrored folder, or mark a streamed folder as available
 offline, then enable wallpaper rotation. The application watches the folder for
 new photographs and also rescans it at the configured interval.
+
+Alternatively, select **Google Photos shared album** and paste a link-shared
+album URL. No Google sign-in or API key is required. The application checks the
+album every 15 minutes, selects the newest-added photo with capture time as the
+tie-breaker, and uses Google's capture timestamp for the overlay. The image is
+downloaded only when its media ID changes. Its matching description is refreshed
+hourly and displayed as at most three small lines along the bottom. A cached copy
+remains available during outages; repeated failures back off up to six hours.
+The sharing link is not written to logs, but it is included in configuration
+exports and must be treated like a password.
 
 Only photographs belonging to the newest capture date are included in the
 rotation. EXIF capture time is preferred; the file modification time is used
@@ -118,6 +128,8 @@ bottom right. The location is centred under a large high-contrast pin. EXIF
 orientation is applied before scaling, so portrait and upside-down phone photos
 display correctly. Map tiles and suburb lookups are cached for offline reuse. The official OFL-licensed
 Google Sans Flex variable font and its licence are bundled with the application.
+Google Photos downloads often omit EXIF GPS. A map is shown only when the
+downloaded image retains valid coordinates; no location is guessed.
 
 Google Drive for Desktop appears in Required applications and can be installed
 through the trusted `Google.GoogleDrive` winget package. This implementation
@@ -167,7 +179,7 @@ Create the self-contained application and Windows Installer package:
 ```powershell
 .\tools\Publish-DadConsole.ps1
 .\tools\Build-Msi.ps1
-msiexec.exe /i .\dist\DementiaComputerButtons-0.1.11-x64.msi
+msiexec.exe /i .\dist\DementiaComputerButtons-0.1.12-x64.msi
 ```
 
 The MSI is self-contained and creates an all-users Start Menu shortcut. The

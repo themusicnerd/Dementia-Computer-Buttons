@@ -260,3 +260,27 @@ map, and the large centred marker. The application remained responsive, the
 operator's settings and wallpaper were restored, and all 66 automated tests
 passed. The 59,285,504-byte 0.1.11 MSI has SHA-256
 `FC7DA5E97456B0224C3FA306761F3210E20E2049715CEA285D0CB0BBFDA6E719`.
+
+## 2026-11-08 Google Photos shared albums
+
+Version 0.1.12 adds a Google Photos shared-album wallpaper source based on the
+proven parser in Dementia Daily Newsletter. Only HTTPS Google Photos share URLs
+and `lh3` through `lh6.googleusercontent.com` image hosts are accepted. Embedded
+JSON arrays are parsed without executing page scripts. Selection uses newest
+album-added time, then capture time and album order. The source link is absent
+from source files and structured logs.
+
+A real link-shared album was tested on this computer. The service followed the
+short link, parsed the current records, selected and downloaded the newest-added
+photo, retrieved the matching description, preserved Google's capture timestamp,
+rendered the wallpaper, and created the offline cache. The tested record had a
+738-character description; visual inspection confirmed it was limited to three
+small bottom lines with an ellipsis. The downloaded Google image did not contain
+EXIF GPS, so the map was correctly omitted. No location was inferred.
+
+The Google source enforces a 15-minute minimum check interval, skips image
+downloads when the media ID is unchanged, refreshes descriptions hourly, and
+backs repeated failures off to six hours while retaining the cached photo. The
+Release build completed with zero warnings and all 75 automated tests passed.
+The 59,293,696-byte 0.1.12 MSI has SHA-256
+`4E0CC8721E1F546985D408765091E94B6027A37F58A9BE27452FD79ABE6387F7`.

@@ -108,11 +108,14 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
     private double _panelBrightness = 100;
     private double _longPressMilliseconds = 1500;
     private bool _wallpaperEnabled;
+    private string _wallpaperSourceType = "LocalFolder";
     private string _wallpaperSourceFolder = string.Empty;
+    private string _googlePhotosAlbumUrl = string.Empty;
     private double _wallpaperRotationMinutes = 15;
     private bool _wallpaperIncludeSubfolders = true;
     private bool _wallpaperShowCaptureDate = true;
     private bool _wallpaperShowLocation = true;
+    private bool _wallpaperShowDescription = true;
     private string _wallpaperDateFormat = "dd MMMM yyyy";
     private string _wallpaperTimeFormat = "h:mm tt";
     private string _wallpaperStatus = "Wallpaper rotation is disabled";
@@ -358,11 +361,14 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
     public double PanelBrightness { get => _panelBrightness; set => Set(ref _panelBrightness, value); }
     public double LongPressMilliseconds { get => _longPressMilliseconds; set => Set(ref _longPressMilliseconds, value); }
     public bool WallpaperEnabled { get => _wallpaperEnabled; set => Set(ref _wallpaperEnabled, value); }
+    public string WallpaperSourceType { get => _wallpaperSourceType; set => Set(ref _wallpaperSourceType, value); }
     public string WallpaperSourceFolder { get => _wallpaperSourceFolder; set => Set(ref _wallpaperSourceFolder, value); }
+    public string GooglePhotosAlbumUrl { get => _googlePhotosAlbumUrl; set => Set(ref _googlePhotosAlbumUrl, value); }
     public double WallpaperRotationMinutes { get => _wallpaperRotationMinutes; set => Set(ref _wallpaperRotationMinutes, value); }
     public bool WallpaperIncludeSubfolders { get => _wallpaperIncludeSubfolders; set => Set(ref _wallpaperIncludeSubfolders, value); }
     public bool WallpaperShowCaptureDate { get => _wallpaperShowCaptureDate; set => Set(ref _wallpaperShowCaptureDate, value); }
     public bool WallpaperShowLocation { get => _wallpaperShowLocation; set => Set(ref _wallpaperShowLocation, value); }
+    public bool WallpaperShowDescription { get => _wallpaperShowDescription; set => Set(ref _wallpaperShowDescription, value); }
     public string WallpaperDateFormat { get => _wallpaperDateFormat; set => Set(ref _wallpaperDateFormat, value); }
     public string WallpaperTimeFormat { get => _wallpaperTimeFormat; set => Set(ref _wallpaperTimeFormat, value); }
     public string WallpaperStatus { get => _wallpaperStatus; private set => Set(ref _wallpaperStatus, value); }
@@ -563,14 +569,22 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
             _configuration.Current.DisplaySchedule.WakePromptText = BlackoutWakePrompt.Trim();
             _configuration.Current.DisplaySchedule.BlackoutFrom = BlackoutFrom;
             _configuration.Current.DisplaySchedule.ResumeAt = ResumeAt;
-            if (WallpaperEnabled && (string.IsNullOrWhiteSpace(WallpaperSourceFolder) || !Directory.Exists(WallpaperSourceFolder)))
-                throw new InvalidOperationException("Choose an available Google Drive photo folder before enabling wallpaper rotation.");
+            if (WallpaperEnabled && WallpaperSourceType == "LocalFolder" &&
+                (string.IsNullOrWhiteSpace(WallpaperSourceFolder) || !Directory.Exists(WallpaperSourceFolder)))
+                throw new InvalidOperationException("Choose an available photo folder before enabling wallpaper rotation.");
+            if (WallpaperEnabled && WallpaperSourceType == "GooglePhotos")
+                GooglePhotosAlbumParser.ValidateAlbumUrl(GooglePhotosAlbumUrl);
             _configuration.Current.Wallpaper.Enabled = WallpaperEnabled;
+            _configuration.Current.Wallpaper.SourceType = WallpaperSourceType;
             _configuration.Current.Wallpaper.SourceFolder = WallpaperSourceFolder.Trim();
-            _configuration.Current.Wallpaper.RotationMinutes = (int)Math.Clamp(Math.Round(WallpaperRotationMinutes), 1, 1440);
+            _configuration.Current.Wallpaper.GooglePhotosAlbumUrl = GooglePhotosAlbumUrl.Trim();
+            _configuration.Current.Wallpaper.RotationMinutes = WallpaperSourceType == "GooglePhotos"
+                ? (int)Math.Clamp(Math.Round(WallpaperRotationMinutes), 15, 1440)
+                : (int)Math.Clamp(Math.Round(WallpaperRotationMinutes), 1, 1440);
             _configuration.Current.Wallpaper.IncludeSubfolders = WallpaperIncludeSubfolders;
             _configuration.Current.Wallpaper.ShowCaptureDate = WallpaperShowCaptureDate;
             _configuration.Current.Wallpaper.ShowLocation = WallpaperShowLocation;
+            _configuration.Current.Wallpaper.ShowDescription = WallpaperShowDescription;
             _configuration.Current.Wallpaper.DateFormat = string.IsNullOrWhiteSpace(WallpaperDateFormat)
                 ? "dd MMMM yyyy" : WallpaperDateFormat.Trim();
             _configuration.Current.Wallpaper.TimeFormat = string.IsNullOrWhiteSpace(WallpaperTimeFormat)
@@ -705,11 +719,14 @@ public sealed class DiagnosticsViewModel : INotifyPropertyChanged
     private void LoadWallpaperEditor(WallpaperConfiguration settings)
     {
         WallpaperEnabled = settings.Enabled;
+        WallpaperSourceType = settings.SourceType;
         WallpaperSourceFolder = settings.SourceFolder;
+        GooglePhotosAlbumUrl = settings.GooglePhotosAlbumUrl;
         WallpaperRotationMinutes = settings.RotationMinutes;
         WallpaperIncludeSubfolders = settings.IncludeSubfolders;
         WallpaperShowCaptureDate = settings.ShowCaptureDate;
         WallpaperShowLocation = settings.ShowLocation;
+        WallpaperShowDescription = settings.ShowDescription;
         WallpaperDateFormat = settings.DateFormat;
         WallpaperTimeFormat = settings.TimeFormat;
     }

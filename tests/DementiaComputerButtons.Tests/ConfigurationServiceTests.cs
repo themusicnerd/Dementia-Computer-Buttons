@@ -171,6 +171,7 @@ public sealed class ConfigurationServiceTests
         {
             var service = new ConfigurationService(path, new TestLog());
             service.Current.Wallpaper.Enabled = true;
+            service.Current.Wallpaper.SourceType = "LocalFolder";
             service.Current.Wallpaper.SourceFolder = @"G:\My Drive\Dad Wallpaper Photos";
             service.Current.Wallpaper.RotationMinutes = 7;
             service.Current.Wallpaper.IncludeSubfolders = false;
@@ -183,12 +184,37 @@ public sealed class ConfigurationServiceTests
             await reloaded.LoadAsync();
 
             Assert.True(reloaded.Current.Wallpaper.Enabled);
+            Assert.Equal("LocalFolder", reloaded.Current.Wallpaper.SourceType);
             Assert.Equal(@"G:\My Drive\Dad Wallpaper Photos", reloaded.Current.Wallpaper.SourceFolder);
             Assert.Equal(7, reloaded.Current.Wallpaper.RotationMinutes);
             Assert.False(reloaded.Current.Wallpaper.IncludeSubfolders);
             Assert.False(reloaded.Current.Wallpaper.ShowLocation);
             Assert.Equal("dd/MM/yyyy", reloaded.Current.Wallpaper.DateFormat);
             Assert.Equal("HH:mm", reloaded.Current.Wallpaper.TimeFormat);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public async Task SavesGooglePhotosWallpaperPreferences()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"dcb-google-photos-{Guid.NewGuid():N}.json");
+        try
+        {
+            var service = new ConfigurationService(path, new TestLog());
+            service.Current.Wallpaper.Enabled = true;
+            service.Current.Wallpaper.SourceType = "GooglePhotos";
+            service.Current.Wallpaper.GooglePhotosAlbumUrl = "https://photos.app.goo.gl/example";
+            service.Current.Wallpaper.RotationMinutes = 10;
+            await service.SaveAsync();
+
+            var reloaded = new ConfigurationService(path, new TestLog());
+            await reloaded.LoadAsync();
+
+            Assert.True(reloaded.Current.Wallpaper.Enabled);
+            Assert.Equal("GooglePhotos", reloaded.Current.Wallpaper.SourceType);
+            Assert.Equal("https://photos.app.goo.gl/example", reloaded.Current.Wallpaper.GooglePhotosAlbumUrl);
+            Assert.Equal(15, reloaded.Current.Wallpaper.RotationMinutes);
         }
         finally { File.Delete(path); }
     }
